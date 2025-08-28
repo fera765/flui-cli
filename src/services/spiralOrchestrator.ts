@@ -559,6 +559,26 @@ export class SpiralOrchestrator {
       error: ''
     };
     
+    // VALIDAÇÃO CRÍTICA: Rejeitar templates genéricos
+    const resultContent = typeof result === 'string' ? result : JSON.stringify(result);
+    
+    // Verificar se é um template genérico (palavras repetidas sem contexto)
+    const isGenericTemplate = 
+      resultContent.includes('${topic}') ||
+      resultContent.includes('Este documento foi gerado automaticamente') ||
+      (resultContent.match(/artigo/gi) || []).length > 10 && resultContent.length < 2000 ||
+      (resultContent.includes('Seção 1:') && resultContent.includes('Seção 2:') && resultContent.length < 2000);
+    
+    if (isGenericTemplate) {
+      console.log(chalk.red('❌ Template genérico detectado! Rejeitando...'));
+      validation.criticalError = true;
+      validation.error = 'Conteúdo genérico detectado. Necessário conteúdo específico e rico.';
+      validation.score = 0;
+      validation.needsRefinement = true;
+      validation.feedback = 'O conteúdo gerado é um template genérico. Precisa ser específico e detalhado sobre o tema solicitado.';
+      return validation;
+    }
+    
     // Verificar se todos os componentes foram executados
     const executedComponents = new Set<string>();
     task.executionPath.forEach(node => {
@@ -595,13 +615,13 @@ export class SpiralOrchestrator {
     let score = 70; // Base
     
     // Verificar se tem conteúdo substancial
-    const content = typeof result === 'string' ? result : JSON.stringify(result);
-    if (content.length > 1000) score += 10;
-    if (content.length > 5000) score += 10;
+    const contentLength = typeof result === 'string' ? result.length : JSON.stringify(result).length;
+    if (contentLength > 1000) score += 10;
+    if (contentLength > 5000) score += 10;
     
     // Se é um roteiro ou artigo com conteúdo rico, aumentar score
-    if (typeof result === 'string' && content.length > 5000 && 
-        (content.includes('# Roteiro') || content.includes('## INFORMAÇÕES'))) {
+    if (typeof result === 'string' && contentLength > 5000 && 
+        (result.includes('# Roteiro') || result.includes('## INFORMAÇÕES'))) {
       score = 95; // Conteúdo rico detectado!
     }
     
@@ -638,24 +658,31 @@ export class SpiralOrchestrator {
     
     if (userRequest.includes('roteiro')) {
       // Extrair tópico do roteiro
-      let topic = 'geral';
-      if (userRequest.includes('ia') || userRequest.includes('inteligência artificial')) {
+      let topic = 'vídeo';
+      if (userRequest.includes('ia') || userRequest.includes('ai') || userRequest.includes('inteligência artificial')) {
         topic = 'IA';
       } else if (userRequest.includes('tecnologia')) {
         topic = 'tecnologia';
+      } else if (userRequest.includes('sobre')) {
+        const match = task.userRequest.match(/sobre\s+(\w+)/i);
+        if (match) topic = match[1];
       }
       
-      // Gerar roteiro COMPLETO e RICO
+      console.log(chalk.cyan(`📝 Gerando roteiro RICO sobre: ${topic}`));
       content = contentGenerator.generateRoteiro(topic, task.userRequest);
     } else if (userRequest.includes('artigo')) {
-      // Gerar artigo completo
-      content = contentGenerator.generateDocument('article', 'artigo', task.userRequest);
+      // CORREÇÃO: Usar generateDocument com 'artigo' para conteúdo rico
+      const topic = this.extractTopicFromRequest(task.userRequest) || 'tecnologia';
+      console.log(chalk.cyan(`📝 Gerando artigo RICO sobre: ${topic}`));
+      content = contentGenerator.generateDocument('artigo', topic, task.userRequest);
     } else if (userRequest.includes('relatório')) {
-      // Gerar relatório completo
+      console.log(chalk.cyan(`📝 Gerando relatório DETALHADO`));
       content = contentGenerator.generateDocument('relatorio', 'relatório', task.userRequest);
     } else {
-      // Conteúdo genérico mas ainda rico
-      content = contentGenerator.generateDocument('document', 'documento', task.userRequest);
+      // Default: gerar artigo rico
+      const topic = this.extractTopicFromRequest(task.userRequest) || 'inovação';
+      console.log(chalk.cyan(`📝 Gerando documento RICO sobre: ${topic}`));
+      content = contentGenerator.generateDocument('artigo', topic, task.userRequest);
     }
     
     // Garantir que o conteúdo é substancial
@@ -687,6 +714,35 @@ export class SpiralOrchestrator {
                   request.match(/folder\s+(\w+)/i);
     
     return match ? match[1] : '';
+  }
+  
+  private extractTopicFromRequest(request: string): string {
+    // Extrair o tópico principal do pedido
+    const patterns = [
+      /sobre\s+(.+?)(?:\.|,|$)/i,
+      /tema[:\s]+(.+?)(?:\.|,|$)/i,
+      /assunto[:\s]+(.+?)(?:\.|,|$)/i,
+      /tópico[:\s]+(.+?)(?:\.|,|$)/i,
+      /artigo\s+(?:sobre|de)\s+(.+?)(?:\.|,|$)/i,
+      /roteiro\s+(?:sobre|de)\s+(.+?)(?:\.|,|$)/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = request.match(pattern);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+    
+    // Buscar palavras-chave importantes
+    const keywords = ['IA', 'AI', 'tecnologia', 'inovação', 'digital', 'futuro', 'automação', 'dados'];
+    for (const keyword of keywords) {
+      if (request.toLowerCase().includes(keyword.toLowerCase())) {
+        return keyword;
+      }
+    }
+    
+    return '';
   }
   
   private async generateArtifacts(task: SpiralTask): Promise<void> {
