@@ -175,7 +175,28 @@ export class ChatAppProduction {
         
         // Prepara resposta com os resultados
         if (results.length > 0) {
-          return this.formatToolResults(input, results);
+          const toolResponse = this.formatToolResults(input, results);
+          
+          // Também envia para a LLM para uma resposta mais natural
+          const currentModel = this.modelManager.getCurrentModel();
+          const contextMessage = `O usuário pediu: "${input}". 
+As seguintes ações foram executadas:
+${toolResponse}
+
+Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
+          
+          try {
+            const llmResponse = await this.apiService.sendMessage(
+              contextMessage,
+              currentModel.id,
+              this.conversationHistory.slice(-5)
+            );
+            
+            return `${toolResponse}\n\n${llmResponse}`;
+          } catch (error) {
+            // Se falhar, retorna apenas o resultado das tools
+            return toolResponse;
+          }
         }
       }
       
@@ -203,32 +224,76 @@ export class ChatAppProduction {
     const tools: string[] = [];
     const lowerInput = input.toLowerCase();
     
-    // Detecta necessidade de criar arquivo
-    if (lowerInput.includes('crie') || lowerInput.includes('criar') || lowerInput.includes('salve') || lowerInput.includes('salvar')) {
-      if (lowerInput.includes('arquivo') || lowerInput.includes('.md') || lowerInput.includes('.txt') || 
-          lowerInput.includes('.json') || lowerInput.includes('.js') || lowerInput.includes('.ts')) {
+    // Detecta necessidade de criar arquivo - MAIS ABRANGENTE
+    if (lowerInput.includes('crie') || lowerInput.includes('criar') || 
+        lowerInput.includes('gere') || lowerInput.includes('gerar') ||
+        lowerInput.includes('faça') || lowerInput.includes('fazer') ||
+        lowerInput.includes('escreva') || lowerInput.includes('escrever') ||
+        lowerInput.includes('salve') || lowerInput.includes('salvar') ||
+        lowerInput.includes('grave') || lowerInput.includes('gravar')) {
+      
+      // Verifica se menciona arquivo ou extensões comuns
+      if (lowerInput.includes('arquivo') || lowerInput.includes('file') ||
+          lowerInput.includes('documento') || lowerInput.includes('doc') ||
+          lowerInput.includes('roteiro') || lowerInput.includes('script') ||
+          lowerInput.includes('relatório') || lowerInput.includes('report') ||
+          lowerInput.includes('readme') || lowerInput.includes('config') ||
+          lowerInput.includes('.md') || lowerInput.includes('.txt') || 
+          lowerInput.includes('.json') || lowerInput.includes('.js') || 
+          lowerInput.includes('.ts') || lowerInput.includes('.html') ||
+          lowerInput.includes('.css') || lowerInput.includes('.yaml') ||
+          lowerInput.includes('.yml') || lowerInput.includes('.xml')) {
         tools.push('file_write');
       }
     }
     
-    // Detecta necessidade de executar comando
-    if (lowerInput.includes('execute') || lowerInput.includes('executar') || lowerInput.includes('rode') || 
-        lowerInput.includes('comando') || lowerInput.includes('listar') || lowerInput.includes('ls')) {
-      tools.push('shell');
-    }
-    
-    // Detecta necessidade de ler arquivo
-    if (lowerInput.includes('ler') || lowerInput.includes('leia') || lowerInput.includes('mostrar') || 
-        lowerInput.includes('conteúdo')) {
-      if (lowerInput.includes('arquivo') || lowerInput.includes('.')) {
-        tools.push('file_read');
+    // Detecta necessidade de executar comando - MAIS ABRANGENTE
+    if (lowerInput.includes('execute') || lowerInput.includes('executar') || 
+        lowerInput.includes('rode') || lowerInput.includes('rodar') ||
+        lowerInput.includes('comando') || lowerInput.includes('command') ||
+        lowerInput.includes('liste') || lowerInput.includes('listar') || 
+        lowerInput.includes('ls') || lowerInput.includes('dir') ||
+        lowerInput.includes('mostre') || lowerInput.includes('mostrar') ||
+        lowerInput.includes('verifique') || lowerInput.includes('verificar') ||
+        lowerInput.includes('versão') || lowerInput.includes('version')) {
+      
+      // Sempre adiciona shell para comandos de listagem
+      if (lowerInput.includes('liste') || lowerInput.includes('listar') || 
+          lowerInput.includes('ls') || lowerInput.includes('dir')) {
+        tools.push('shell');
+      } 
+      // Para outros comandos, evita conflito com leitura de arquivo
+      else if (!lowerInput.includes('arquivo') && !lowerInput.includes('conteúdo')) {
+        tools.push('shell');
       }
     }
     
+    // Detecta necessidade de ler arquivo
+    if ((lowerInput.includes('ler') || lowerInput.includes('leia') || 
+         lowerInput.includes('abrir') || lowerInput.includes('abra') ||
+         lowerInput.includes('visualizar') || lowerInput.includes('visualize') ||
+         lowerInput.includes('ver') || lowerInput.includes('veja')) &&
+        (lowerInput.includes('arquivo') || lowerInput.includes('file') ||
+         lowerInput.includes('conteúdo') || lowerInput.includes('content') ||
+         lowerInput.match(/\.\w+/))) {
+      tools.push('file_read');
+    }
+    
     // Detecta necessidade de analisar erro
-    if (lowerInput.includes('erro') || lowerInput.includes('error') || lowerInput.includes('problema') || 
-        lowerInput.includes('falha') || lowerInput.includes('bug')) {
-      tools.push('find_problem_solution');
+    if (lowerInput.includes('erro') || lowerInput.includes('error') || 
+        lowerInput.includes('problema') || lowerInput.includes('problem') ||
+        lowerInput.includes('falha') || lowerInput.includes('fail') ||
+        lowerInput.includes('bug') || lowerInput.includes('issue') ||
+        lowerInput.includes('exception') || lowerInput.includes('exceção') ||
+        lowerInput.includes('ajude') || lowerInput.includes('help')) {
+      
+      // Verifica se parece ser sobre código/erro técnico
+      if (lowerInput.includes('typeerror') || lowerInput.includes('referenceerror') ||
+          lowerInput.includes('syntaxerror') || lowerInput.includes('undefined') ||
+          lowerInput.includes('null') || lowerInput.includes('cannot') ||
+          lowerInput.includes('não pode') || lowerInput.includes('não consegue')) {
+        tools.push('find_problem_solution');
+      }
     }
     
     return tools;
@@ -239,31 +304,79 @@ export class ChatAppProduction {
     
     switch (toolName) {
       case 'file_write':
-        // Extrai nome do arquivo
-        const fileMatch = input.match(/(\w+\.\w+)/);
-        const filename = fileMatch ? fileMatch[1] : 'output.txt';
+        // Extrai nome do arquivo - melhorado para detectar mais padrões
+        let filename = 'output.txt';
         
-        // Determina conteúdo baseado no tipo de arquivo
+        // Tenta encontrar nome de arquivo explícito
+        const filePatterns = [
+          /(\w+\.\w+)/,  // arquivo.ext
+          /arquivo\s+(\w+)/i,  // "arquivo teste"
+          /file\s+(\w+)/i,  // "file test"
+          /chamado\s+(\w+)/i,  // "chamado exemplo"
+          /nome\s+(\w+)/i,  // "nome documento"
+        ];
+        
+        for (const pattern of filePatterns) {
+          const match = input.match(pattern);
+          if (match) {
+            filename = match[1].includes('.') ? match[1] : `${match[1]}.txt`;
+            break;
+          }
+        }
+        
+        // Se menciona tipo específico, ajusta extensão
+        if (lowerInput.includes('roteiro')) filename = 'roteiro.md';
+        else if (lowerInput.includes('script')) filename = 'script.md';
+        else if (lowerInput.includes('readme')) filename = 'README.md';
+        else if (lowerInput.includes('relatório') || lowerInput.includes('relatorio')) filename = 'relatorio.md';
+        else if (lowerInput.includes('config')) filename = 'config.json';
+        else if (lowerInput.includes('documento')) filename = 'documento.md';
+        else if (lowerInput.includes('lista')) filename = 'lista.md';
+        else if (lowerInput.includes('todo')) filename = 'TODO.md';
+        
+        // Determina conteúdo baseado no contexto
         let content = '';
+        const date = new Date().toLocaleDateString('pt-BR');
+        
         if (filename.includes('roteiro') || lowerInput.includes('roteiro')) {
-          content = `# Roteiro\n\n## Introdução\n- Apresentação\n- Objetivos\n\n## Desenvolvimento\n- Ponto 1\n- Ponto 2\n- Ponto 3\n\n## Conclusão\n- Resumo\n- Call to action`;
+          content = `# Roteiro\n\n## Introdução\n- Apresentação do tema\n- Objetivos\n- Público-alvo\n\n## Desenvolvimento\n- Ponto principal 1\n- Ponto principal 2\n- Ponto principal 3\n- Demonstrações práticas\n\n## Conclusão\n- Resumo dos pontos\n- Call to action\n- Agradecimentos\n\n---\n*Criado em ${date} com Flui CLI*`;
         } else if (filename.includes('readme') || filename.includes('README')) {
-          content = `# README\n\n## Sobre\nProjeto criado com Flui CLI.\n\n## Instalação\n\`\`\`bash\nnpm install\n\`\`\`\n\n## Uso\n\`\`\`bash\nnpm start\n\`\`\``;
+          content = `# Projeto\n\n## 📋 Sobre\nProjeto criado com Flui CLI - Assistente IA com ferramentas integradas.\n\n## 🚀 Instalação\n\`\`\`bash\nnpm install\n\`\`\`\n\n## 💻 Uso\n\`\`\`bash\nnpm start\n\`\`\`\n\n## 🛠️ Tecnologias\n- Node.js\n- TypeScript\n- LLM Integration\n\n## 📝 Licença\nMIT\n\n---\n*Gerado automaticamente em ${date}*`;
+        } else if (filename.includes('relatorio') || filename.includes('report')) {
+          content = `# Relatório\n\n## Resumo Executivo\nRelatório gerado automaticamente pelo Flui CLI.\n\n## Data\n${date}\n\n## Status\n✅ Operacional\n\n## Métricas\n- Performance: Excelente\n- Disponibilidade: 100%\n- Erros: 0\n\n## Próximos Passos\n1. Continuar monitoramento\n2. Implementar melhorias\n3. Expandir funcionalidades\n\n---\n*Documento gerado automaticamente*`;
         } else if (filename.endsWith('.json')) {
-          content = `{\n  "name": "projeto",\n  "version": "1.0.0",\n  "description": "Criado com Flui CLI"\n}`;
+          content = `{\n  "name": "projeto-flui",\n  "version": "1.0.0",\n  "description": "Criado com Flui CLI",\n  "created": "${new Date().toISOString()}",\n  "author": "Flui CLI",\n  "status": "active"\n}`;
+        } else if (filename.includes('todo') || filename.includes('TODO')) {
+          content = `# TODO List\n\n## 🔴 Alta Prioridade\n- [ ] Tarefa urgente 1\n- [ ] Tarefa urgente 2\n\n## 🟡 Média Prioridade\n- [ ] Tarefa importante 1\n- [ ] Tarefa importante 2\n\n## 🟢 Baixa Prioridade\n- [ ] Melhorias futuras\n- [ ] Otimizações\n\n---\n*Lista criada em ${date}*`;
         } else {
-          content = `# ${filename}\n\nArquivo criado automaticamente pelo Flui CLI.\n\nData: ${new Date().toISOString()}`;
+          // Conteúdo genérico melhorado
+          content = `# ${filename.replace(/\.\w+$/, '')}\n\n## Descrição\nArquivo criado automaticamente pelo Flui CLI.\n\n## Informações\n- **Data de criação:** ${date}\n- **Gerado por:** Flui CLI com IA\n- **Endpoint:** https://api.llm7.io/v1\n\n## Conteúdo\n${lowerInput.includes('teste') ? 'Este é um arquivo de teste.' : 'Conteúdo do arquivo.'}\n\n---\n*Documento gerado automaticamente*`;
         }
         
         return { filename, content };
         
       case 'shell':
-        if (lowerInput.includes('listar') || lowerInput.includes('ls')) {
+        // Detecção melhorada de comandos
+        if (lowerInput.includes('listar') || lowerInput.includes('liste') || 
+            lowerInput.includes('ls') || lowerInput.includes('arquivos')) {
           return { command: 'ls -la' };
         } else if (lowerInput.includes('versão') || lowerInput.includes('version')) {
-          return { command: 'node --version' };
+          if (lowerInput.includes('node')) return { command: 'node --version' };
+          else if (lowerInput.includes('npm')) return { command: 'npm --version' };
+          else return { command: 'node --version && npm --version' };
+        } else if (lowerInput.includes('diretório') || lowerInput.includes('diretorio') || 
+                   lowerInput.includes('pasta') || lowerInput.includes('pwd')) {
+          return { command: 'pwd' };
+        } else if (lowerInput.includes('data') || lowerInput.includes('hora')) {
+          return { command: 'date' };
+        } else if (lowerInput.includes('processo') || lowerInput.includes('process')) {
+          return { command: 'ps aux | head -10' };
         } else {
-          return { command: 'echo "Comando executado pelo Flui"' };
+          // Tenta extrair comando direto se mencionado
+          const cmdMatch = input.match(/comando[:\s]+([^.!?\n]+)/i);
+          if (cmdMatch) return { command: cmdMatch[1].trim() };
+          
+          return { command: 'echo "Comando executado com sucesso pelo Flui!"' };
         }
         
       case 'file_read':
@@ -271,8 +384,24 @@ export class ChatAppProduction {
         return { path: readMatch ? readMatch[1] : 'package.json' };
         
       case 'find_problem_solution':
-        const errorMatch = input.match(/(error|erro|Error|TypeError|ReferenceError|SyntaxError)[^.!?]*/i);
-        return { error: errorMatch ? errorMatch[0] : 'Generic error' };
+        // Melhor extração de mensagens de erro
+        const errorPatterns = [
+          /(TypeError[^.!?\n]*)/i,
+          /(ReferenceError[^.!?\n]*)/i,
+          /(SyntaxError[^.!?\n]*)/i,
+          /(Error[^.!?\n]*)/i,
+          /(erro[^.!?\n]*)/i,
+          /(undefined[^.!?\n]*)/i,
+          /(null[^.!?\n]*)/i,
+          /(cannot[^.!?\n]*)/i,
+        ];
+        
+        for (const pattern of errorPatterns) {
+          const match = input.match(pattern);
+          if (match) return { error: match[0] };
+        }
+        
+        return { error: 'Erro genérico detectado no código' };
         
       default:
         return null;

@@ -5,7 +5,10 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "dev": "ts-node src/index-production.ts",
+    "dev:original": "ts-node src/index.ts",
+    "dev:tools": "ts-node src/index-tools.ts",
+    "dev:enhanced": "ts-node src/index-enhanced.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
