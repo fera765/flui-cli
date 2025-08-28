@@ -27,8 +27,9 @@ export class OpenAIService {
   private tools: Map<string, FluiTool> = new Map();
   private useLocalEndpoint: boolean = false;
   private localEndpoint: string = 'http://localhost:3000/v1'; // Endpoint local sem API key
+  private productionEndpoint: string = 'https://api.llm7.io/v1'; // Endpoint de produção sem API key
 
-  constructor(apiKey?: string, useLocal: boolean = false) {
+  constructor(apiKey?: string, useLocal: boolean = false, useProduction: boolean = true) {
     this.useLocalEndpoint = useLocal;
     
     if (useLocal) {
@@ -38,6 +39,15 @@ export class OpenAIService {
         baseURL: this.localEndpoint,
         defaultHeaders: {
           'Authorization': undefined // Remove o header de autorização
+        } as any
+      });
+    } else if (useProduction) {
+      // Configuração para endpoint de produção LLM7 (sem API key)
+      this.openai = new OpenAI({
+        apiKey: 'not-needed', // LLM7 não precisa de API key
+        baseURL: this.productionEndpoint,
+        defaultHeaders: {
+          'Authorization': undefined // Remove o header de autorização pois LLM7 não precisa
         } as any
       });
     } else if (apiKey) {
