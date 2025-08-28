@@ -162,21 +162,69 @@ export class ChatAppProduction {
     }
   }
 
-  private async getAIResponseWithTools(input: string): Promise<string> {
+    private async getAIResponseWithTools(input: string): Promise<string> {
     this.chatUI.showThinking();
-
+    
     try {
       // Analisa contexto do diretório atual
       const context = this.navigationManager.analyzeContext();
       
       // Se está em um projeto e o comando não parece relacionado, pergunta
       if (context.isProject && this.shouldWarnAboutContext(input, context)) {
+        this.chatUI.hideThinking();
+        
         const warning = `⚠️ Você está em um projeto ${context.projectType || 'existente'}.\n` +
                        `Esta ação parece não estar relacionada ao projeto.\n` +
                        `Deseja continuar mesmo assim? (s/n)`;
         
         console.log(chalk.yellow(warning));
-        // Por enquanto, continua normalmente (em produção real, aguardaria confirmação)
+        
+        // AGUARDA CONFIRMAÇÃO DO USUÁRIO
+        const readline = require('readline');
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const answer = await new Promise<string>((resolve) => {
+          rl.question('', (answer: string) => {
+            rl.close();
+            resolve(answer.toLowerCase());
+          });
+        });
+        
+        if (answer !== 's' && answer !== 'sim' && answer !== 'y' && answer !== 'yes') {
+          // Usuário não confirmou - criar nova pasta e navegar
+          const projectName = this.extractProjectName(input) || 'novo-projeto';
+          await this.navigationManager.createAndNavigate(projectName);
+          console.log(chalk.green(`📁 Nova pasta criada: ${projectName}`));
+          console.log(chalk.cyan(`📍 Navegado para: ${this.navigationManager.getCurrentDir()}`));
+        }
+        
+        this.chatUI.showThinking();
+      }
+      
+      // INTEGRAÇÃO COM MODO ESPIRAL PARA TAREFAS COMPLEXAS
+      const complexity = this.analyzeComplexity(input);
+      
+      // Se a tarefa é complexa, usa o modo espiral
+      if (complexity !== 'simple' && (input.toLowerCase().includes('roteiro') || 
+                                      input.toLowerCase().includes('artigo') ||
+                                      input.toLowerCase().includes('pesquis'))) {
+        this.chatUI.hideThinking();
+        console.log(chalk.cyan('🌀 Ativando modo espiral para tarefa complexa...'));
+        
+        const { SpiralOrchestrator } = await import('./services/spiralOrchestrator');
+        const orchestrator = new SpiralOrchestrator();
+        const result = await orchestrator.processUserRequest(input);
+        
+        if (result.status === 'completed' && result.artifacts && result.artifacts.length > 0) {
+          return `✅ Tarefa concluída no modo espiral!\n📄 Arquivos criados: ${result.artifacts.join(', ')}\n📊 Iterações: ${result.iterations}`;
+        } else if (result.status === 'failed') {
+          return `❌ Falha na execução: ${result.feedback || 'Erro desconhecido'}`;
+        }
+        
+        this.chatUI.showThinking();
       }
       
       // Detecta intenções do usuário e prepara tools automaticamente
@@ -242,6 +290,59 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
     }
   }
 
+  private extractProjectName(input: string): string {
+    const patterns = [
+      /pasta\s+(\w+)/i,
+      /folder\s+(\w+)/i,
+      /projeto\s+(\w+)/i,
+      /project\s+(\w+)/i,
+      /diretório\s+(\w+)/i,
+      /directory\s+(\w+)/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = input.match(pattern);
+      if (match) return match[1];
+    }
+    
+    return '';
+  }
+  
+  private analyzeComplexity(input: string): 'simple' | 'medium' | 'complex' | 'expert' {
+    const lower = input.toLowerCase();
+    let complexity = 0;
+    
+    // Palavras que indicam múltiplas tarefas
+    const multiTaskWords = ['e', 'também', 'além', 'depois', 'então', 'com'];
+    multiTaskWords.forEach(word => {
+      if (lower.includes(word)) complexity += 1;
+    });
+    
+    // Palavras que indicam pesquisa/análise
+    const researchWords = ['pesquise', 'analise', 'compare', 'avalie', 'estude'];
+    researchWords.forEach(word => {
+      if (lower.includes(word)) complexity += 2;
+    });
+    
+    // Palavras que indicam criação complexa
+    const creationWords = ['roteiro', 'artigo', 'relatório', 'sistema', 'aplicação'];
+    creationWords.forEach(word => {
+      if (lower.includes(word)) complexity += 2;
+    });
+    
+    // Palavras que indicam validação/refinamento
+    const validationWords = ['valide', 'verifique', 'humanize', 'melhore', 'otimize'];
+    validationWords.forEach(word => {
+      if (lower.includes(word)) complexity += 1;
+    });
+    
+    // Classificar baseado na pontuação
+    if (complexity <= 2) return 'simple';
+    if (complexity <= 4) return 'medium';
+    if (complexity <= 6) return 'complex';
+    return 'expert';
+  }
+  
   private shouldWarnAboutContext(input: string, context: any): boolean {
     const lowerInput = input.toLowerCase();
     
