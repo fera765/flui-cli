@@ -4,6 +4,7 @@ import * as readline from 'readline';
 import { ThemeManager } from './themeManager';
 import { CleanInputBox } from './cleanInputBox';
 import { MessageTimeline } from './messageTimeline';
+import { MarkdownRenderer } from './markdownRenderer';
 
 export class ChatUI {
   private spinner: any = null;
@@ -54,16 +55,21 @@ export class ChatUI {
     // Simple display without cursor movement
     switch (role) {
       case 'user':
-        // For user messages, show with > prefix
-        console.log(this.themeManager.formatUserMessage(`> ${message}`));
+        // User message already shown by input, don't duplicate
+        // Just keep it in timeline for history
+        this.timeline.addUserMessage(message);
         break;
       case 'assistant':
-        // For assistant messages, print them directly
-        console.log(this.themeManager.formatAssistantMessage(message));
+        // For assistant messages, render with markdown
+        const renderer = new MarkdownRenderer(this.themeManager);
+        const rendered = renderer.render(message);
+        console.log(this.themeManager.formatAssistantMessage(rendered));
         console.log(); // Add spacing
+        this.timeline.addAssistantMessage(message);
         break;
       case 'system':
         console.log(this.themeManager.formatSystemMessage(message));
+        this.timeline.addSystemMessage(message);
         break;
     }
   }

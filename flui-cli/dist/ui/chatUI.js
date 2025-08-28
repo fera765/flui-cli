@@ -8,6 +8,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const themeManager_1 = require("./themeManager");
 const cleanInputBox_1 = require("./cleanInputBox");
 const messageTimeline_1 = require("./messageTimeline");
+const markdownRenderer_1 = require("./markdownRenderer");
 class ChatUI {
     constructor() {
         this.spinner = null;
@@ -47,16 +48,21 @@ class ChatUI {
         // Simple display without cursor movement
         switch (role) {
             case 'user':
-                // For user messages, show with > prefix
-                console.log(this.themeManager.formatUserMessage(`> ${message}`));
+                // User message already shown by input, don't duplicate
+                // Just keep it in timeline for history
+                this.timeline.addUserMessage(message);
                 break;
             case 'assistant':
-                // For assistant messages, print them directly
-                console.log(this.themeManager.formatAssistantMessage(message));
+                // For assistant messages, render with markdown
+                const renderer = new markdownRenderer_1.MarkdownRenderer(this.themeManager);
+                const rendered = renderer.render(message);
+                console.log(this.themeManager.formatAssistantMessage(rendered));
                 console.log(); // Add spacing
+                this.timeline.addAssistantMessage(message);
                 break;
             case 'system':
                 console.log(this.themeManager.formatSystemMessage(message));
+                this.timeline.addSystemMessage(message);
                 break;
         }
     }
