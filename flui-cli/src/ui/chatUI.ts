@@ -2,18 +2,18 @@ import chalk from 'chalk';
 import ora from 'ora';
 import * as readline from 'readline';
 import { ThemeManager } from './themeManager';
-import { EnhancedInputBox } from './enhancedInputBox';
+import { SimpleInputBox } from './simpleInputBox';
 import { MessageTimeline } from './messageTimeline';
 
 export class ChatUI {
   private spinner: any = null;
   private themeManager: ThemeManager;
-  private inputBox: EnhancedInputBox;
+  private inputBox: SimpleInputBox;
   private timeline: MessageTimeline;
 
   constructor() {
     this.themeManager = new ThemeManager();
-    this.inputBox = new EnhancedInputBox(this.themeManager);
+    this.inputBox = new SimpleInputBox(this.themeManager);
     this.timeline = new MessageTimeline(this.themeManager);
     this.inputBox.initialize();
     
@@ -98,7 +98,7 @@ export class ChatUI {
     return this.timeline;
   }
 
-  getInputBox(): EnhancedInputBox {
+  getInputBox(): SimpleInputBox {
     return this.inputBox;
   }
 

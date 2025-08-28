@@ -74,8 +74,6 @@ export class EnhancedInputBox {
         // Regular character input
         this.insertChar(str);
       }
-      
-      this.redraw();
     });
   }
 
