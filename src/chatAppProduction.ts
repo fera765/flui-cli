@@ -5,6 +5,7 @@ import { MemoryManager } from './services/memoryManager';
 import { OpenAIService } from './services/openAIService';
 import { NavigationManager } from './services/navigationManager';
 import { ErrorHandler } from './services/errorHandler';
+import { IntelligentContentGenerator } from './services/intelligentContentGenerator';
 import { ChatUI } from './ui/chatUI';
 import { ThemeSelector } from './ui/themeSelector';
 import { ModelSelector } from './ui/modelSelector';
@@ -23,6 +24,7 @@ export class ChatAppProduction {
   private openAIService: OpenAIService;
   private navigationManager: NavigationManager;
   private errorHandler: ErrorHandler;
+  private contentGenerator: IntelligentContentGenerator;
   private toolBox: ToolBox;
   private currentRequest: AbortController | null = null;
 
@@ -35,6 +37,7 @@ export class ChatAppProduction {
     this.memoryManager = new MemoryManager();
     this.navigationManager = new NavigationManager();
     this.errorHandler = new ErrorHandler();
+    this.contentGenerator = new IntelligentContentGenerator();
     
     // Inicializa OpenAIService com endpoint de produção LLM7
     this.openAIService = new OpenAIService(); // Sempre usa produção (LLM7)
@@ -384,23 +387,38 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
         else if (lowerInput.includes('lista')) filename = 'lista.md';
         else if (lowerInput.includes('todo')) filename = 'TODO.md';
         
-        // Determina conteúdo baseado no contexto
+        // Usa o gerador inteligente de conteúdo
         let content = '';
-        const date = new Date().toLocaleDateString('pt-BR');
         
+        // Se for roteiro, usa o gerador específico
         if (filename.includes('roteiro') || lowerInput.includes('roteiro')) {
-          content = `# Roteiro\n\n## Introdução\n- Apresentação do tema\n- Objetivos\n- Público-alvo\n\n## Desenvolvimento\n- Ponto principal 1\n- Ponto principal 2\n- Ponto principal 3\n- Demonstrações práticas\n\n## Conclusão\n- Resumo dos pontos\n- Call to action\n- Agradecimentos\n\n---\n*Criado em ${date} com Flui CLI*`;
-        } else if (filename.includes('readme') || filename.includes('README')) {
-          content = `# Projeto\n\n## 📋 Sobre\nProjeto criado com Flui CLI - Assistente IA com ferramentas integradas.\n\n## 🚀 Instalação\n\`\`\`bash\nnpm install\n\`\`\`\n\n## 💻 Uso\n\`\`\`bash\nnpm start\n\`\`\`\n\n## 🛠️ Tecnologias\n- Node.js\n- TypeScript\n- LLM Integration\n\n## 📝 Licença\nMIT\n\n---\n*Gerado automaticamente em ${date}*`;
-        } else if (filename.includes('relatorio') || filename.includes('report')) {
-          content = `# Relatório\n\n## Resumo Executivo\nRelatório gerado automaticamente pelo Flui CLI.\n\n## Data\n${date}\n\n## Status\n✅ Operacional\n\n## Métricas\n- Performance: Excelente\n- Disponibilidade: 100%\n- Erros: 0\n\n## Próximos Passos\n1. Continuar monitoramento\n2. Implementar melhorias\n3. Expandir funcionalidades\n\n---\n*Documento gerado automaticamente*`;
-        } else if (filename.endsWith('.json')) {
-          content = `{\n  "name": "projeto-flui",\n  "version": "1.0.0",\n  "description": "Criado com Flui CLI",\n  "created": "${new Date().toISOString()}",\n  "author": "Flui CLI",\n  "status": "active"\n}`;
-        } else if (filename.includes('todo') || filename.includes('TODO')) {
-          content = `# TODO List\n\n## 🔴 Alta Prioridade\n- [ ] Tarefa urgente 1\n- [ ] Tarefa urgente 2\n\n## 🟡 Média Prioridade\n- [ ] Tarefa importante 1\n- [ ] Tarefa importante 2\n\n## 🟢 Baixa Prioridade\n- [ ] Melhorias futuras\n- [ ] Otimizações\n\n---\n*Lista criada em ${date}*`;
-        } else {
-          // Conteúdo genérico melhorado
-          content = `# ${filename.replace(/\.\w+$/, '')}\n\n## Descrição\nArquivo criado automaticamente pelo Flui CLI.\n\n## Informações\n- **Data de criação:** ${date}\n- **Gerado por:** Flui CLI com IA\n- **Endpoint:** https://api.llm7.io/v1\n\n## Conteúdo\n${lowerInput.includes('teste') ? 'Este é um arquivo de teste.' : 'Conteúdo do arquivo.'}\n\n---\n*Documento gerado automaticamente*`;
+          content = this.contentGenerator.generateRoteiro(filename, input);
+        } 
+        // Para outros tipos de documento
+        else {
+          let docType = 'document';
+          let topic = '';
+          
+          // Extrai o tópico do input
+          const topicMatch = input.match(/sobre\s+(.+?)(?:\s+e\s+|\s*$)/i) || 
+                             input.match(/about\s+(.+?)(?:\s+and\s+|\s*$)/i) ||
+                             input.match(/de\s+(.+?)(?:\s+e\s+|\s*$)/i);
+          if (topicMatch) {
+            topic = topicMatch[1];
+          }
+          
+          // Detecta o tipo de documento
+          if (filename.includes('readme') || filename.includes('README')) {
+            docType = 'readme';
+          } else if (filename.includes('relatorio') || filename.includes('report')) {
+            docType = 'relatorio';
+          } else if (filename.includes('todo') || filename.includes('TODO')) {
+            docType = 'todo';
+          } else if (filename.endsWith('.json') || filename.includes('config')) {
+            docType = 'config';
+          }
+          
+          content = this.contentGenerator.generateDocument(docType, topic || filename, input);
         }
         
         return { filename, content };
