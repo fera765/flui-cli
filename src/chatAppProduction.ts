@@ -5,7 +5,7 @@ import { MemoryManager } from './services/memoryManager';
 import { OpenAIService } from './services/openAIService';
 import { NavigationManager } from './services/navigationManager';
 import { ErrorHandler } from './services/errorHandler';
-import { IntelligentContentGenerator } from './services/intelligentContentGenerator';
+import { LLMContentGenerator } from './services/llmContentGenerator';
 import { ChatUI } from './ui/chatUI';
 import { ThemeSelector } from './ui/themeSelector';
 import { ModelSelector } from './ui/modelSelector';
@@ -24,7 +24,7 @@ export class ChatAppProduction {
   private openAIService: OpenAIService;
   private navigationManager: NavigationManager;
   private errorHandler: ErrorHandler;
-  private contentGenerator: IntelligentContentGenerator;
+  private contentGenerator: LLMContentGenerator;
   private toolBox: ToolBox;
   private currentRequest: AbortController | null = null;
 
@@ -37,7 +37,7 @@ export class ChatAppProduction {
     this.memoryManager = new MemoryManager();
     this.navigationManager = new NavigationManager();
     this.errorHandler = new ErrorHandler();
-    this.contentGenerator = new IntelligentContentGenerator();
+    this.contentGenerator = new LLMContentGenerator();
     
     // Inicializa OpenAIService com endpoint de produção LLM7
     this.openAIService = new OpenAIService(); // Sempre usa produção (LLM7)
@@ -236,7 +236,7 @@ export class ChatAppProduction {
         // Executa as tools necessárias
         const results = [];
         for (const toolName of toolsNeeded) {
-          const params = this.extractToolParams(input, toolName);
+          const params = await this.extractToolParams(input, toolName);
           if (params) {
             const result = await this.executeTool(toolName, params);
             results.push(result);
@@ -453,7 +453,7 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
     return tools;
   }
 
-  private extractToolParams(input: string, toolName: string): any {
+  private async extractToolParams(input: string, toolName: string): Promise<any> {
     const lowerInput = input.toLowerCase();
     
     switch (toolName) {
@@ -488,39 +488,11 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
         else if (lowerInput.includes('lista')) filename = 'lista.md';
         else if (lowerInput.includes('todo')) filename = 'TODO.md';
         
-        // Usa o gerador inteligente de conteúdo
-        let content = '';
+        // REFATORADO: Usa o LLMContentGenerator para geração 100% autônoma
+        console.log(chalk.cyan('🤖 Gerando conteúdo via LLM...'));
         
-        // Se for roteiro, usa o gerador específico
-        if (filename.includes('roteiro') || lowerInput.includes('roteiro')) {
-          content = this.contentGenerator.generateRoteiro(filename, input);
-        } 
-        // Para outros tipos de documento
-        else {
-          let docType = 'document';
-          let topic = '';
-          
-          // Extrai o tópico do input
-          const topicMatch = input.match(/sobre\s+(.+?)(?:\s+e\s+|\s*$)/i) || 
-                             input.match(/about\s+(.+?)(?:\s+and\s+|\s*$)/i) ||
-                             input.match(/de\s+(.+?)(?:\s+e\s+|\s*$)/i);
-          if (topicMatch) {
-            topic = topicMatch[1];
-          }
-          
-          // Detecta o tipo de documento
-          if (filename.includes('readme') || filename.includes('README')) {
-            docType = 'readme';
-          } else if (filename.includes('relatorio') || filename.includes('report')) {
-            docType = 'relatorio';
-          } else if (filename.includes('todo') || filename.includes('TODO')) {
-            docType = 'todo';
-          } else if (filename.endsWith('.json') || filename.includes('config')) {
-            docType = 'config';
-          }
-          
-          content = this.contentGenerator.generateDocument(docType, topic || filename, input);
-        }
+        // Gera conteúdo completamente via LLM, sem templates ou dados fixos
+        const content = await this.contentGenerator.generateContent(input);
         
         return { filename, content };
         

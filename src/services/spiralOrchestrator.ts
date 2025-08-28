@@ -649,40 +649,35 @@ export class SpiralOrchestrator {
   }
   
   private async generateContent(task: SpiralTask): Promise<string> {
-    // Usar o IntelligentContentGenerator para gerar conteúdo RICO
-    const { IntelligentContentGenerator } = await import('./intelligentContentGenerator');
-    const contentGenerator = new IntelligentContentGenerator();
+    // REFATORADO: Usar o LLMContentGenerator para geração 100% autônoma
+    const { LLMContentGenerator } = await import('./llmContentGenerator');
+    const contentGenerator = new LLMContentGenerator();
     
-    const userRequest = task.userRequest.toLowerCase();
+    console.log(chalk.cyan(`🤖 Gerando conteúdo autônomo via LLM...`));
+    console.log(chalk.gray(`   Pedido: ${task.userRequest}`));
+    
     let content = '';
     
-    if (userRequest.includes('roteiro')) {
-      // Extrair tópico do roteiro
-      let topic = 'vídeo';
-      if (userRequest.includes('ia') || userRequest.includes('ai') || userRequest.includes('inteligência artificial')) {
-        topic = 'IA';
-      } else if (userRequest.includes('tecnologia')) {
-        topic = 'tecnologia';
-      } else if (userRequest.includes('sobre')) {
-        const match = task.userRequest.match(/sobre\s+(\w+)/i);
-        if (match) topic = match[1];
-      }
+    try {
+      // Gerar conteúdo completamente via LLM, sem templates
+      content = await contentGenerator.generateContent(task.userRequest);
       
-      console.log(chalk.cyan(`📝 Gerando roteiro RICO sobre: ${topic}`));
-      content = contentGenerator.generateRoteiro(topic, task.userRequest);
-    } else if (userRequest.includes('artigo')) {
-      // CORREÇÃO: Usar generateDocument com 'artigo' para conteúdo rico
-      const topic = this.extractTopicFromRequest(task.userRequest) || 'tecnologia';
-      console.log(chalk.cyan(`📝 Gerando artigo RICO sobre: ${topic}`));
-      content = contentGenerator.generateDocument('artigo', topic, task.userRequest);
-    } else if (userRequest.includes('relatório')) {
-      console.log(chalk.cyan(`📝 Gerando relatório DETALHADO`));
-      content = contentGenerator.generateDocument('relatorio', 'relatório', task.userRequest);
-    } else {
-      // Default: gerar artigo rico
-      const topic = this.extractTopicFromRequest(task.userRequest) || 'inovação';
-      console.log(chalk.cyan(`📝 Gerando documento RICO sobre: ${topic}`));
-      content = contentGenerator.generateDocument('artigo', topic, task.userRequest);
+      // Se houver feedback de iterações anteriores, melhorar o conteúdo
+      if (task.feedback) {
+        console.log(chalk.yellow(`📝 Aplicando feedback: ${task.feedback}`));
+        content = await contentGenerator.improveContent(content, task.feedback);
+      }
+    } catch (error: any) {
+      console.error(chalk.red(`❌ Erro ao gerar conteúdo: ${error.message}`));
+      
+      // Fallback: tentar com contexto adicional
+      const context = {
+        iterations: task.iterations,
+        components: task.components,
+        previousAttempts: task.executionPath.length
+      };
+      
+      content = await contentGenerator.generateWithContext(task.userRequest, context);
     }
     
     // Garantir que o conteúdo é substancial
