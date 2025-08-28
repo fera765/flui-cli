@@ -121,41 +121,49 @@ export class ChatApp {
         return false;
 
       case '/model':
-        // Use interactive model selector
+        // Pause input box during selection
+        this.chatUI.getInputBox().pause();
+        
         try {
           const modelChanged = await this.modelSelector.selectModel();
+          
+          // Clear and redraw everything
+          process.stdout.write('\x1Bc');
+          process.stdout.write('\x1B[H');
+          this.chatUI.displayWelcome();
+          
           if (modelChanged) {
-            // Clear and redraw everything properly
-            process.stdout.write('\x1Bc');
-            process.stdout.write('\x1B[H');
-            this.chatUI.displayWelcome();
             this.chatUI.displayModels(this.modelManager.getFormattedModelList());
-            this.chatUI.getTimeline().display(false);
-            this.chatUI.getInputBox().display();
-          } else {
-            // Just redraw the input box if cancelled
-            this.chatUI.getInputBox().display();
           }
+          
+          this.chatUI.getTimeline().display(false);
         } catch (error) {
-          console.log('\nModel selection error\n');
+          console.error('Model selection error:', error);
+        } finally {
+          // Always resume input box
+          this.chatUI.getInputBox().resume();
           this.chatUI.getInputBox().display();
         }
         return true;
 
       case '/theme':
-        // Use interactive theme selector
+        // Pause input box during selection
+        this.chatUI.getInputBox().pause();
+        
         try {
           const themeChanged = await this.themeSelector.selectTheme();
-          if (themeChanged) {
-            // Clear and redraw everything with new theme
-            process.stdout.write('\x1Bc');
-            process.stdout.write('\x1B[H');
-            this.chatUI.displayWelcome();
-            this.chatUI.getTimeline().display(false);
-            this.chatUI.getInputBox().display();
-          }
+          
+          // Clear and redraw everything
+          process.stdout.write('\x1Bc');
+          process.stdout.write('\x1B[H');
+          this.chatUI.displayWelcome();
+          this.chatUI.getTimeline().display(false);
         } catch (error) {
-          console.log('\nTheme selection cancelled\n');
+          console.error('Theme selection error:', error);
+        } finally {
+          // Always resume input box
+          this.chatUI.getInputBox().resume();
+          this.chatUI.getInputBox().display();
         }
         return true;
 

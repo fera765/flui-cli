@@ -5,6 +5,7 @@ export declare class ModelSelector {
     private modelManager;
     private settingsManager;
     private themeManager;
+    private selector;
     constructor(modelManager: ModelManager, settingsManager: SettingsManager, themeManager: ThemeManager);
     selectModel(): Promise<boolean>;
     private formatModelChoice;

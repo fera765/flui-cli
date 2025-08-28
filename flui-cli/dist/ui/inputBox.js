@@ -220,6 +220,18 @@ class InputBox {
         // Redisplay input box
         this.display();
     }
+    pause() {
+        if (this.rl) {
+            this.rl.pause();
+        }
+    }
+    resume() {
+        if (this.rl) {
+            this.rl.resume();
+            // Re-setup prompt
+            this.rl.setPrompt('');
+        }
+    }
     destroy() {
         if (this.spinnerInterval) {
             clearInterval(this.spinnerInterval);

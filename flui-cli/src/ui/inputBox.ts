@@ -228,6 +228,20 @@ export class InputBox {
 
   onClearScreen?: () => void;
 
+  pause(): void {
+    if (this.rl) {
+      this.rl.pause();
+    }
+  }
+
+  resume(): void {
+    if (this.rl) {
+      this.rl.resume();
+      // Re-setup prompt
+      this.rl.setPrompt('');
+    }
+  }
+
   destroy(): void {
     if (this.spinnerInterval) {
       clearInterval(this.spinnerInterval);

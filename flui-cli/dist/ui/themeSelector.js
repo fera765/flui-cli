@@ -1,72 +1,31 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeSelector = void 0;
+const interactiveSelector_1 = require("./interactiveSelector");
 class ThemeSelector {
     constructor(themeManager, settingsManager) {
         this.themeManager = themeManager;
         this.settingsManager = settingsManager;
+        this.selector = new interactiveSelector_1.InteractiveSelector(themeManager);
     }
     async selectTheme() {
         const themes = this.themeManager.getAvailableThemes();
         const currentTheme = this.themeManager.getCurrentTheme().name;
-        // Display available themes
-        console.log('\n🎨 Available Themes:\n');
-        themes.forEach((theme, index) => {
-            const isCurrent = theme === currentTheme;
-            const marker = isCurrent ? ' (current)' : '';
-            console.log(`[${index + 1}] ${theme}${marker}`);
-        });
-        console.log('\nEnter theme number (1-10) or press Enter to cancel:');
-        // Simple number input - no inquirer
-        return new Promise((resolve) => {
-            const stdin = process.stdin;
-            stdin.setRawMode(true);
-            stdin.resume();
-            let input = '';
-            const handler = (key) => {
-                const char = key.toString();
-                if (char === '\r' || char === '\n') {
-                    // Enter pressed
-                    stdin.setRawMode(false);
-                    stdin.pause();
-                    stdin.removeListener('data', handler);
-                    const themeIndex = parseInt(input);
-                    if (themeIndex >= 1 && themeIndex <= themes.length) {
-                        const selectedTheme = themes[themeIndex - 1];
-                        this.themeManager.setTheme(selectedTheme);
-                        this.settingsManager.setTheme(selectedTheme);
-                        console.log(`\nTheme changed to: ${selectedTheme}\n`);
-                        resolve(true);
-                    }
-                    else {
-                        console.log('\nTheme selection cancelled\n');
-                        resolve(false);
-                    }
-                }
-                else if (char === '\x03' || char === '\x1b') {
-                    // Ctrl+C or ESC
-                    stdin.setRawMode(false);
-                    stdin.pause();
-                    stdin.removeListener('data', handler);
-                    console.log('\nTheme selection cancelled\n');
-                    resolve(false);
-                }
-                else if (char >= '0' && char <= '9') {
-                    if (input.length < 2) {
-                        input += char;
-                        process.stdout.write(char);
-                    }
-                }
-                else if (char === '\x7f' || char === '\b') {
-                    // Backspace
-                    if (input.length > 0) {
-                        input = input.slice(0, -1);
-                        process.stdout.write('\b \b');
-                    }
-                }
-            };
-            stdin.on('data', handler);
-        });
+        // Prepare options for selector
+        const options = themes.map(theme => ({
+            label: theme,
+            value: theme
+        }));
+        // Show interactive selector
+        const selectedTheme = await this.selector.select('🎨 Select Theme', options, currentTheme);
+        if (selectedTheme && selectedTheme !== currentTheme) {
+            this.themeManager.setTheme(selectedTheme);
+            this.settingsManager.setTheme(selectedTheme);
+            console.log(this.themeManager.formatSuccess(`\n✓ Theme changed to: ${selectedTheme}\n`));
+            return true;
+        }
+        console.log(this.themeManager.formatDim('\nTheme selection cancelled\n'));
+        return false;
     }
 }
 exports.ThemeSelector = ThemeSelector;

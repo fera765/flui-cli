@@ -273,6 +273,15 @@ class ThemeManager {
         const color = this.currentTheme.colors.info;
         return chalk_1.default[color](message);
     }
+    formatSuccess(message) {
+        return chalk_1.default.green(message);
+    }
+    formatHighlight(message) {
+        return chalk_1.default.bgBlue.white(message);
+    }
+    formatDim(message) {
+        return chalk_1.default.gray(message);
+    }
     // Persistence methods
     saveThemePreference(themeName) {
         try {

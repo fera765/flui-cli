@@ -33,6 +33,9 @@ export declare class ThemeManager {
     formatBorder(message: string): string;
     formatWarning(message: string): string;
     formatInfo(message: string): string;
+    formatSuccess(message: string): string;
+    formatHighlight(message: string): string;
+    formatDim(message: string): string;
     saveThemePreference(themeName: string): void;
     loadThemePreference(): void;
 }

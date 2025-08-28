@@ -1,74 +1,47 @@
 import { ModelManager } from '../services/modelManager';
 import { SettingsManager } from '../services/settingsManager';
 import { ThemeManager } from './themeManager';
+import { InteractiveSelector, SelectorOption } from './interactiveSelector';
 
 export class ModelSelector {
+  private selector: InteractiveSelector;
+  
   constructor(
     private modelManager: ModelManager,
     private settingsManager: SettingsManager,
     private themeManager: ThemeManager
-  ) {}
+  ) {
+    this.selector = new InteractiveSelector(themeManager);
+  }
 
   async selectModel(): Promise<boolean> {
     const models = this.modelManager.getAvailableModels();
     const currentModel = this.modelManager.getCurrentModel();
     
-    // Display available models
-    console.log('\n📋 Available Models:\n');
-    models.forEach((model, index) => {
-      const isCurrent = model.id === currentModel.id;
-      const marker = isCurrent ? ' (current)' : '';
-      console.log(`[${index + 1}] ${model.id} (${(model.context_length / 1000).toFixed(0)}k tokens)${marker}`);
-      if (model.description) {
-        console.log(`    ${model.description}`);
-      }
-    });
+    // Prepare options for selector
+    const options: SelectorOption[] = models.map((model, index) => ({
+      label: `${model.id} (${(model.context_length / 1000).toFixed(0)}k tokens)`,
+      value: index + 1,
+      description: model.description || undefined
+    }));
     
-    console.log('\nEnter model number (1-3) or press Enter to cancel:');
+    // Show interactive selector
+    const selectedIndex = await this.selector.select(
+      '📋 Select Model',
+      options,
+      models.findIndex(m => m.id === currentModel.id) + 1
+    );
     
-    // Simple number input - no inquirer to avoid process termination
-    return new Promise((resolve) => {
-      const stdin = process.stdin;
-      stdin.setRawMode(true);
-      stdin.resume();
-      
-      let input = '';
-      
-      const handler = (key: Buffer) => {
-        const char = key.toString();
-        
-        if (char === '\r' || char === '\n') {
-          // Enter pressed
-          stdin.setRawMode(false);
-          stdin.pause();
-          stdin.removeListener('data', handler);
-          
-          const modelIndex = parseInt(input);
-          if (modelIndex >= 1 && modelIndex <= models.length) {
-            this.modelManager.selectModel(modelIndex);
-            const newModel = this.modelManager.getCurrentModel();
-            this.settingsManager.setModel(newModel.id, modelIndex);
-            console.log(`\nModel changed to: ${newModel.id}\n`);
-            resolve(true);
-          } else {
-            console.log('\nModel selection cancelled\n');
-            resolve(false);
-          }
-        } else if (char === '\x03' || char === '\x1b') {
-          // Ctrl+C or ESC
-          stdin.setRawMode(false);
-          stdin.pause();
-          stdin.removeListener('data', handler);
-          console.log('\nModel selection cancelled\n');
-          resolve(false);
-        } else if (char >= '1' && char <= '3') {
-          input = char;
-          process.stdout.write(char);
-        }
-      };
-      
-      stdin.on('data', handler);
-    });
+    if (selectedIndex && selectedIndex !== models.findIndex(m => m.id === currentModel.id) + 1) {
+      this.modelManager.selectModel(selectedIndex);
+      const newModel = this.modelManager.getCurrentModel();
+      this.settingsManager.setModel(newModel.id, selectedIndex);
+      console.log(this.themeManager.formatSuccess(`\n✓ Model changed to: ${newModel.id}\n`));
+      return true;
+    }
+    
+    console.log(this.themeManager.formatDim('\nModel selection cancelled\n'));
+    return false;
   }
 
   private formatModelChoice(model: any, isCurrent: boolean): string {

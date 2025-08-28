@@ -283,6 +283,18 @@ export class ThemeManager {
     return (chalk as any)[color](message);
   }
 
+  formatSuccess(message: string): string {
+    return chalk.green(message);
+  }
+
+  formatHighlight(message: string): string {
+    return chalk.bgBlue.white(message);
+  }
+
+  formatDim(message: string): string {
+    return chalk.gray(message);
+  }
+
   // Persistence methods
   saveThemePreference(themeName: string): void {
     try {
