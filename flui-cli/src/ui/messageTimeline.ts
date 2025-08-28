@@ -1,4 +1,5 @@
 import { ThemeManager } from './themeManager';
+import { MarkdownRenderer } from './markdownRenderer';
 
 export interface TimelineMessage {
   role: 'user' | 'assistant' | 'system';
@@ -8,9 +9,14 @@ export interface TimelineMessage {
 
 export class MessageTimeline {
   private messages: TimelineMessage[] = [];
+  private visibleMessages: TimelineMessage[] = [];
   private maxMessages: number = 50;
+  private isCleared: boolean = false;
+  private markdownRenderer: MarkdownRenderer;
 
-  constructor(private themeManager: ThemeManager) {}
+  constructor(private themeManager: ThemeManager) {
+    this.markdownRenderer = new MarkdownRenderer(themeManager);
+  }
 
   addUserMessage(content: string): void {
     this.addMessage({
@@ -38,10 +44,14 @@ export class MessageTimeline {
 
   private addMessage(message: TimelineMessage): void {
     this.messages.push(message);
+    this.visibleMessages.push(message);
     
     // Limit message history
     if (this.messages.length > this.maxMessages) {
       this.messages = this.messages.slice(-this.maxMessages);
+    }
+    if (this.visibleMessages.length > this.maxMessages) {
+      this.visibleMessages = this.visibleMessages.slice(-this.maxMessages);
     }
   }
 
@@ -57,8 +67,9 @@ export class MessageTimeline {
         return this.themeManager.formatUserMessage(userContent);
       
       case 'assistant':
-        // Assistant messages with lighter color, no prefix
-        return this.themeManager.formatAssistantMessage(message.content);
+        // Assistant messages with markdown rendering
+        const rendered = this.markdownRenderer.render(message.content);
+        return this.themeManager.formatAssistantMessage(rendered.trim());
       
       case 'system':
         // System messages with special formatting
@@ -71,25 +82,26 @@ export class MessageTimeline {
 
   display(clearScreen: boolean = false): void {
     if (clearScreen) {
-      console.clear();
+      process.stdout.write('\x1Bc'); // Clear screen completely
+      process.stdout.write('\x1B[H'); // Move cursor to home
     }
 
-    if (this.messages.length === 0) {
+    if (this.visibleMessages.length === 0) {
       return;
     }
 
     const formattedMessages: string[] = [];
     
-    for (let i = 0; i < this.messages.length; i++) {
-      const message = this.messages[i];
+    for (let i = 0; i < this.visibleMessages.length; i++) {
+      const message = this.visibleMessages[i];
       const formatted = this.formatMessage(message);
       
       formattedMessages.push(formatted);
       
       // Add spacing between messages
-      if (i < this.messages.length - 1) {
+      if (i < this.visibleMessages.length - 1) {
         // Add extra line break between user and assistant messages
-        const nextMessage = this.messages[i + 1];
+        const nextMessage = this.visibleMessages[i + 1];
         if (message.role === 'user' && nextMessage.role === 'assistant') {
           formattedMessages.push(''); // Empty line for spacing
         }
@@ -113,6 +125,12 @@ export class MessageTimeline {
 
   clear(): void {
     this.messages = [];
+    this.visibleMessages = [];
+  }
+  
+  clearVisible(): void {
+    // Clear only visible messages, keep context
+    this.visibleMessages = [];
   }
 
   getLastMessage(): TimelineMessage | null {

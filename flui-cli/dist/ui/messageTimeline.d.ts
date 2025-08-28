@@ -7,7 +7,10 @@ export interface TimelineMessage {
 export declare class MessageTimeline {
     private themeManager;
     private messages;
+    private visibleMessages;
     private maxMessages;
+    private isCleared;
+    private markdownRenderer;
     constructor(themeManager: ThemeManager);
     addUserMessage(content: string): void;
     addAssistantMessage(content: string): void;
@@ -18,6 +21,7 @@ export declare class MessageTimeline {
     display(clearScreen?: boolean): void;
     displayLatest(count?: number): void;
     clear(): void;
+    clearVisible(): void;
     getLastMessage(): TimelineMessage | null;
     getMessageCount(): number;
 }

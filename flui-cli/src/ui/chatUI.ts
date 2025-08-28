@@ -16,10 +16,21 @@ export class ChatUI {
     this.inputBox = new InputBox(this.themeManager);
     this.timeline = new MessageTimeline(this.themeManager);
     this.inputBox.initialize();
+    
+    // Connect Ctrl+L handler
+    this.inputBox.onClearScreen = () => {
+      this.timeline.clearVisible();
+      this.timeline.display(true);
+      this.inputBox.display();
+    };
   }
 
   displayWelcome(): void {
-    console.clear();
+    // Clear terminal completely
+    process.stdout.write('\x1Bc'); // Clear screen and scrollback
+    process.stdout.write('\x1B[3J'); // Clear scrollback buffer
+    process.stdout.write('\x1B[H'); // Move cursor to home
+    
     const primary = this.themeManager.formatPrimary('\n ╔════════════════════════════════════════╗ ');
     console.log(primary);
     console.log(this.themeManager.formatPrimary(' ║         Flui CLI v1.0.0                ║ '));
@@ -78,6 +89,10 @@ export class ChatUI {
 
   getTimeline(): MessageTimeline {
     return this.timeline;
+  }
+
+  getInputBox(): InputBox {
+    return this.inputBox;
   }
 
   destroy(): void {

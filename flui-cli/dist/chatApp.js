@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatApp = void 0;
+const settingsManager_1 = require("./services/settingsManager");
+const themeSelector_1 = require("./ui/themeSelector");
+const modelSelector_1 = require("./ui/modelSelector");
 class ChatApp {
     constructor(apiService, modelManager, chatUI) {
         this.apiService = apiService;
@@ -8,10 +11,33 @@ class ChatApp {
         this.chatUI = chatUI;
         this.conversationHistory = [];
         this.isRunning = false;
+        this.settingsManager = new settingsManager_1.SettingsManager();
+        this.themeSelector = new themeSelector_1.ThemeSelector(this.chatUI.getThemeManager(), this.settingsManager);
+        this.modelSelector = new modelSelector_1.ModelSelector(this.modelManager, this.settingsManager, this.chatUI.getThemeManager());
     }
     async initialize() {
         try {
             await this.modelManager.initialize();
+            // Load saved settings
+            const settings = this.settingsManager.getAllSettings();
+            // Apply saved theme
+            if (settings.theme) {
+                try {
+                    this.chatUI.getThemeManager().setTheme(settings.theme);
+                }
+                catch (e) {
+                    // Use default if saved theme is invalid
+                }
+            }
+            // Apply saved model
+            if (settings.modelIndex) {
+                try {
+                    this.modelManager.selectModel(settings.modelIndex);
+                }
+                catch (e) {
+                    // Use default if saved model is invalid
+                }
+            }
             this.chatUI.displayDisclaimer();
             this.chatUI.displayWelcome();
             this.chatUI.displayModels(this.modelManager.getFormattedModelList());
@@ -42,45 +68,21 @@ class ChatApp {
                 this.chatUI.displayMessage('Encerrando chat. Até logo!', 'system');
                 return false;
             case '/model':
-                if (parts.length === 1) {
-                    // Show model list
-                    this.chatUI.displayModels(this.modelManager.getFormattedModelList());
-                }
-                else {
-                    // Change model
-                    const index = parseInt(parts[1]);
-                    if (isNaN(index)) {
-                        this.chatUI.displayError('Por favor, forneça um número válido (1-3)');
-                    }
-                    else {
-                        try {
-                            this.modelManager.selectModel(index);
-                            const currentModel = this.modelManager.getCurrentModel();
-                            this.chatUI.displayMessage(`Modelo alterado para: ${currentModel.id}`, 'system');
-                        }
-                        catch (error) {
-                            this.chatUI.displayError(`Índice de modelo inválido. Use /model para ver os modelos disponíveis.`);
-                        }
-                    }
+                // Use interactive model selector
+                const modelChanged = await this.modelSelector.selectModel();
+                if (modelChanged) {
+                    // Model was changed, display is already updated
+                    this.chatUI.getTimeline().display(false);
+                    this.chatUI.getInputBox().display();
                 }
                 return true;
             case '/theme':
-                if (parts.length === 1) {
-                    // Show theme list
-                    this.chatUI.displayThemes(this.chatUI.getThemeManager().getFormattedThemeList());
-                }
-                else {
-                    // Change theme
-                    const themeName = parts[1].toLowerCase();
-                    try {
-                        this.chatUI.getThemeManager().setTheme(themeName);
-                        this.chatUI.displayMessage(`Tema alterado para: ${themeName}`, 'system');
-                        // Refresh display with new theme
-                        this.chatUI.getTimeline().display(true);
-                    }
-                    catch (error) {
-                        this.chatUI.displayError(`Tema inválido. Use /theme para ver os temas disponíveis.`);
-                    }
+                // Use interactive theme selector
+                const themeChanged = await this.themeSelector.selectTheme();
+                if (themeChanged) {
+                    // Refresh display with new theme
+                    this.chatUI.getTimeline().display(true);
+                    this.chatUI.getInputBox().display();
                 }
                 return true;
             default:

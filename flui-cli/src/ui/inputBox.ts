@@ -40,6 +40,12 @@ export class InputBox {
     this.rl.on('keypress', (char, key) => {
       if (!key) return;
       
+      // Handle Ctrl+L to clear screen
+      if (key.ctrl && key.name === 'l') {
+        this.clearScreen();
+        return;
+      }
+      
       switch (key.name) {
         case 'up':
           if (this.historyIndex > 0) {
@@ -205,6 +211,22 @@ export class InputBox {
     }
     this.cursorPosition = 0;
   }
+
+  clearScreen(): void {
+    // Clear screen but keep input box
+    process.stdout.write('\x1Bc'); // Clear screen
+    process.stdout.write('\x1B[H'); // Move cursor to home
+    
+    // Trigger timeline clear event
+    if (this.onClearScreen) {
+      this.onClearScreen();
+    }
+    
+    // Redisplay input box
+    this.display();
+  }
+
+  onClearScreen?: () => void;
 
   destroy(): void {
     if (this.spinnerInterval) {

@@ -20,6 +20,8 @@ export declare class InputBox {
     hideThinking(): void;
     clear(): void;
     resetCursor(): void;
+    clearScreen(): void;
+    onClearScreen?: () => void;
     destroy(): void;
 }
 //# sourceMappingURL=inputBox.d.ts.map

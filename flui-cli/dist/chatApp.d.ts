@@ -7,6 +7,9 @@ export declare class ChatApp {
     private chatUI;
     private conversationHistory;
     private isRunning;
+    private settingsManager;
+    private themeSelector;
+    private modelSelector;
     constructor(apiService: ApiService, modelManager: ModelManager, chatUI: ChatUI);
     initialize(): Promise<void>;
     processInput(): Promise<boolean>;
