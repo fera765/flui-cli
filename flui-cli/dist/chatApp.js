@@ -68,17 +68,26 @@ class ChatApp {
         }
     }
     async processInput() {
-        const input = await this.chatUI.getUserInput();
-        if (!input || input.trim() === '') {
+        try {
+            const input = await this.chatUI.getUserInput();
+            if (!input || input.trim() === '') {
+                return true;
+            }
+            // Check for commands
+            if (input.startsWith('/')) {
+                const shouldContinue = await this.handleCommand(input);
+                // Always return true unless it's /exit
+                return shouldContinue;
+            }
+            // Regular message
+            await this.sendMessage(input);
             return true;
         }
-        // Check for commands
-        if (input.startsWith('/')) {
-            return await this.handleCommand(input);
+        catch (error) {
+            // Don't exit on errors, just show them and continue
+            console.error('Error processing input:', error);
+            return true;
         }
-        // Regular message
-        await this.sendMessage(input);
-        return true;
     }
     async handleCommand(command) {
         const parts = command.split(' ');
@@ -89,20 +98,37 @@ class ChatApp {
                 return false;
             case '/model':
                 // Use interactive model selector
-                const modelChanged = await this.modelSelector.selectModel();
-                if (modelChanged) {
-                    // Model was changed, display is already updated
-                    this.chatUI.getTimeline().display(false);
-                    this.chatUI.getInputBox().display();
+                try {
+                    const modelChanged = await this.modelSelector.selectModel();
+                    if (modelChanged) {
+                        // Clear and redraw everything properly
+                        process.stdout.write('\x1Bc');
+                        process.stdout.write('\x1B[H');
+                        this.chatUI.displayWelcome();
+                        this.chatUI.displayModels(this.modelManager.getFormattedModelList());
+                        this.chatUI.getTimeline().display(false);
+                        this.chatUI.getInputBox().display();
+                    }
+                }
+                catch (error) {
+                    console.log('\nModel selection cancelled\n');
                 }
                 return true;
             case '/theme':
                 // Use interactive theme selector
-                const themeChanged = await this.themeSelector.selectTheme();
-                if (themeChanged) {
-                    // Refresh display with new theme
-                    this.chatUI.getTimeline().display(true);
-                    this.chatUI.getInputBox().display();
+                try {
+                    const themeChanged = await this.themeSelector.selectTheme();
+                    if (themeChanged) {
+                        // Clear and redraw everything with new theme
+                        process.stdout.write('\x1Bc');
+                        process.stdout.write('\x1B[H');
+                        this.chatUI.displayWelcome();
+                        this.chatUI.getTimeline().display(false);
+                        this.chatUI.getInputBox().display();
+                    }
+                }
+                catch (error) {
+                    console.log('\nTheme selection cancelled\n');
                 }
                 return true;
             default:

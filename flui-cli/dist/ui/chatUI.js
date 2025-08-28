@@ -56,7 +56,10 @@ class ChatUI {
                 this.timeline.addSystemMessage(message);
                 break;
         }
-        // Don't clear the header, just update the timeline area
+        // Clear screen and redraw everything to avoid duplication
+        process.stdout.write('\x1Bc');
+        process.stdout.write('\x1B[H');
+        this.displayWelcome();
         this.timeline.display(false);
         this.inputBox.display();
     }
