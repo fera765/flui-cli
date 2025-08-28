@@ -50,15 +50,15 @@ class CleanInputBox {
         // Don't display prompt here, let readline handle it
     }
     async getInput() {
-        // Simple readline with controlled prompt
+        // Use readline with terminal mode to handle arrow keys properly
         const rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
-            terminal: false
+            terminal: true,
+            prompt: this.themeManager.formatPrompt('💬 > ')
         });
-        // Show prompt manually
-        const prompt = this.themeManager.formatPrompt('💬 > ');
-        process.stdout.write(prompt);
+        // Show prompt using readline's prompt method
+        rl.prompt();
         return new Promise((resolve) => {
             rl.once('line', (input) => {
                 rl.close();

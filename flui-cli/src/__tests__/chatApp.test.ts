@@ -118,7 +118,8 @@ describe('ChatApp', () => {
       expect(mockApiService.sendMessage).toHaveBeenCalledWith(
         'Hello AI',
         'gpt-4-turbo',
-        []
+        [],
+        expect.any(Object)
       );
       expect(mockChatUI.hideThinking).toHaveBeenCalled();
       expect(mockChatUI.displayMessage).toHaveBeenCalledWith('Hello AI', 'user');
@@ -142,7 +143,8 @@ describe('ChatApp', () => {
         [
           { role: 'user', content: 'Hello' },
           { role: 'assistant', content: 'Hi there!' }
-        ]
+        ],
+        undefined // AbortSignal parameter
       );
     });
 
