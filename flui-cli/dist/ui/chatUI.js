@@ -6,13 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatUI = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const themeManager_1 = require("./themeManager");
-const simpleInputBox_1 = require("./simpleInputBox");
+const basicInputBox_1 = require("./basicInputBox");
 const messageTimeline_1 = require("./messageTimeline");
 class ChatUI {
     constructor() {
         this.spinner = null;
         this.themeManager = new themeManager_1.ThemeManager();
-        this.inputBox = new simpleInputBox_1.SimpleInputBox(this.themeManager);
+        this.inputBox = new basicInputBox_1.BasicInputBox(this.themeManager);
         this.timeline = new messageTimeline_1.MessageTimeline(this.themeManager);
         this.inputBox.initialize();
         // Connect Ctrl+L handler
@@ -36,8 +36,6 @@ class ChatUI {
         console.log(this.themeManager.formatWarning('  /theme') + this.themeManager.formatBorder(' - Trocar tema'));
         console.log(this.themeManager.formatWarning('  /exit') + this.themeManager.formatBorder(' - Sair do chat'));
         console.log(this.themeManager.formatBorder('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
-        // Show input prompt immediately
-        this.inputBox.display();
     }
     displayDisclaimer() {
         console.log(chalk_1.default.bgRed.white('\n ⚠️  AVISO IMPORTANTE ⚠️ \n'));
@@ -61,8 +59,7 @@ class ChatUI {
                 console.log(this.themeManager.formatSystemMessage(message));
                 break;
         }
-        // Show prompt for next input
-        this.inputBox.display();
+        // Don't show prompt here, it will be shown by getInput
     }
     displayError(error) {
         console.log(chalk_1.default.red('\n❌ Error:'), chalk_1.default.red(error));

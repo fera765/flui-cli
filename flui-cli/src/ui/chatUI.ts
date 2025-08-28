@@ -2,18 +2,18 @@ import chalk from 'chalk';
 import ora from 'ora';
 import * as readline from 'readline';
 import { ThemeManager } from './themeManager';
-import { SimpleInputBox } from './simpleInputBox';
+import { BasicInputBox } from './basicInputBox';
 import { MessageTimeline } from './messageTimeline';
 
 export class ChatUI {
   private spinner: any = null;
   private themeManager: ThemeManager;
-  private inputBox: SimpleInputBox;
+  private inputBox: BasicInputBox;
   private timeline: MessageTimeline;
 
   constructor() {
     this.themeManager = new ThemeManager();
-    this.inputBox = new SimpleInputBox(this.themeManager);
+    this.inputBox = new BasicInputBox(this.themeManager);
     this.timeline = new MessageTimeline(this.themeManager);
     this.inputBox.initialize();
     
@@ -41,9 +41,6 @@ export class ChatUI {
     console.log(this.themeManager.formatWarning('  /theme') + this.themeManager.formatBorder(' - Trocar tema'));
     console.log(this.themeManager.formatWarning('  /exit') + this.themeManager.formatBorder(' - Sair do chat'));
     console.log(this.themeManager.formatBorder('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
-    
-    // Show input prompt immediately
-    this.inputBox.display();
   }
 
   displayDisclaimer(): void {
@@ -69,9 +66,7 @@ export class ChatUI {
         console.log(this.themeManager.formatSystemMessage(message));
         break;
     }
-    
-    // Show prompt for next input
-    this.inputBox.display();
+    // Don't show prompt here, it will be shown by getInput
   }
 
   displayError(error: string): void {
@@ -98,7 +93,7 @@ export class ChatUI {
     return this.timeline;
   }
 
-  getInputBox(): SimpleInputBox {
+  getInputBox(): BasicInputBox {
     return this.inputBox;
   }
 
