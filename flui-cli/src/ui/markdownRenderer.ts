@@ -1,15 +1,6 @@
 import { marked } from 'marked';
+const TerminalRenderer = require('marked-terminal');
 import { ThemeManager } from './themeManager';
-
-let markedTerminal: any;
-try {
-  // Import marked-terminal v7
-  const mt = require('marked-terminal');
-  markedTerminal = mt.markedTerminal || mt.default || mt;
-} catch (error) {
-  // Fallback if marked-terminal is not available
-  markedTerminal = null;
-}
 
 export class MarkdownRenderer {
   private renderer: any;
@@ -19,24 +10,16 @@ export class MarkdownRenderer {
   }
 
   private setupRenderer(): void {
-    // Check if markedTerminal is available
-    if (!markedTerminal || typeof markedTerminal !== 'function') {
-      // Use default marked renderer
-      return;
-    }
-    
-    // markedTerminal v7 returns an extension object for marked.use()
-    // We can customize colors but for now use defaults
-    const terminalOptions = markedTerminal({
-      // Options for marked-terminal
+    this.renderer = new TerminalRenderer({
       showSectionPrefix: false,
       width: 80,
       reflowText: true,
       preserveNewlines: true
     });
     
-    // Apply the terminal renderer to marked
-    marked.use(terminalOptions);
+    marked.setOptions({
+      renderer: this.renderer
+    });
   }
 
   render(markdown: string): string {
