@@ -11,6 +11,7 @@ class ChatApp {
         this.chatUI = chatUI;
         this.conversationHistory = [];
         this.isRunning = false;
+        this.currentRequest = null;
         this.settingsManager = new settingsManager_1.SettingsManager();
         this.themeSelector = new themeSelector_1.ThemeSelector(this.chatUI.getThemeManager(), this.settingsManager);
         this.modelSelector = new modelSelector_1.ModelSelector(this.modelManager, this.settingsManager, this.chatUI.getThemeManager());
@@ -38,6 +39,8 @@ class ChatApp {
                     // Use default if saved model is invalid
                 }
             }
+            // Setup ESC key handler
+            this.setupEscapeHandler();
             this.chatUI.displayDisclaimer();
             this.chatUI.displayWelcome();
             this.chatUI.displayModels(this.modelManager.getFormattedModelList());
@@ -45,6 +48,23 @@ class ChatApp {
         catch (error) {
             this.chatUI.displayError(`Erro ao inicializar: ${error}`);
             throw new Error('Failed to initialize chat');
+        }
+    }
+    setupEscapeHandler() {
+        process.stdin.on('keypress', (str, key) => {
+            if (key && key.name === 'escape') {
+                this.handleEscape();
+            }
+        });
+    }
+    handleEscape() {
+        if (this.currentRequest) {
+            // Abort current API request
+            this.currentRequest.abort();
+            this.currentRequest = null;
+            this.chatUI.hideThinking();
+            console.log('\n⚠️ Action aborted\n');
+            this.chatUI.getInputBox().display();
         }
     }
     async processInput() {
@@ -94,8 +114,12 @@ class ChatApp {
         try {
             this.chatUI.displayMessage(message, 'user');
             this.chatUI.showThinking();
-            const response = await this.apiService.sendMessage(message, this.modelManager.getCurrentModelId(), [...this.conversationHistory] // Send copy of history
+            // Create abort controller for this request
+            this.currentRequest = new AbortController();
+            const response = await this.apiService.sendMessage(message, this.modelManager.getCurrentModelId(), [...this.conversationHistory], // Send copy of history
+            this.currentRequest.signal // Pass abort signal
             );
+            this.currentRequest = null;
             this.chatUI.hideThinking();
             this.chatUI.displayMessage(response, 'assistant');
             // Update conversation history AFTER successful response
@@ -106,8 +130,12 @@ class ChatApp {
             }
         }
         catch (error) {
+            this.currentRequest = null;
             this.chatUI.hideThinking();
-            this.chatUI.displayError(`Erro ao enviar mensagem: ${error}`);
+            // Don't show error if it was aborted
+            if (error.name !== 'AbortError') {
+                this.chatUI.displayError(`Erro ao enviar mensagem: ${error}`);
+            }
         }
     }
     async run() {

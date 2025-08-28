@@ -62,7 +62,8 @@ export class ApiService {
   async sendMessage(
     message: string, 
     model: string, 
-    history: Message[]
+    history: Message[],
+    signal?: AbortSignal
   ): Promise<string> {
     try {
       const messages = [

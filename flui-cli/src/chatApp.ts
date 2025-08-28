@@ -11,6 +11,7 @@ export class ChatApp {
   private settingsManager: SettingsManager;
   private themeSelector: ThemeSelector;
   private modelSelector: ModelSelector;
+  private currentRequest: AbortController | null = null;
 
   constructor(
     private apiService: ApiService,
@@ -54,12 +55,34 @@ export class ChatApp {
         }
       }
       
+      // Setup ESC key handler
+      this.setupEscapeHandler();
+      
       this.chatUI.displayDisclaimer();
       this.chatUI.displayWelcome();
       this.chatUI.displayModels(this.modelManager.getFormattedModelList());
     } catch (error) {
       this.chatUI.displayError(`Erro ao inicializar: ${error}`);
       throw new Error('Failed to initialize chat');
+    }
+  }
+
+  private setupEscapeHandler(): void {
+    process.stdin.on('keypress', (str, key) => {
+      if (key && key.name === 'escape') {
+        this.handleEscape();
+      }
+    });
+  }
+
+  private handleEscape(): void {
+    if (this.currentRequest) {
+      // Abort current API request
+      this.currentRequest.abort();
+      this.currentRequest = null;
+      this.chatUI.hideThinking();
+      console.log('\n⚠️ Action aborted\n');
+      this.chatUI.getInputBox().display();
     }
   }
 
@@ -120,12 +143,17 @@ export class ChatApp {
       this.chatUI.displayMessage(message, 'user');
       this.chatUI.showThinking();
 
+      // Create abort controller for this request
+      this.currentRequest = new AbortController();
+
       const response = await this.apiService.sendMessage(
         message,
         this.modelManager.getCurrentModelId(),
-        [...this.conversationHistory]  // Send copy of history
+        [...this.conversationHistory],  // Send copy of history
+        this.currentRequest.signal  // Pass abort signal
       );
 
+      this.currentRequest = null;
       this.chatUI.hideThinking();
       this.chatUI.displayMessage(response, 'assistant');
 
@@ -139,9 +167,14 @@ export class ChatApp {
       if (this.conversationHistory.length > 20) {
         this.conversationHistory = this.conversationHistory.slice(-20);
       }
-    } catch (error) {
+    } catch (error: any) {
+      this.currentRequest = null;
       this.chatUI.hideThinking();
-      this.chatUI.displayError(`Erro ao enviar mensagem: ${error}`);
+      
+      // Don't show error if it was aborted
+      if (error.name !== 'AbortError') {
+        this.chatUI.displayError(`Erro ao enviar mensagem: ${error}`);
+      }
     }
   }
 

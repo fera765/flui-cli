@@ -63,7 +63,8 @@ export class ChatUI {
         this.timeline.addSystemMessage(message);
         break;
     }
-    this.timeline.display(true);
+    // Don't clear the header, just update the timeline area
+    this.timeline.display(false);
     this.inputBox.display();
   }
 

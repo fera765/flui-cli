@@ -10,6 +10,6 @@ export interface Message {
 export declare class ApiService {
     private baseUrl;
     fetchModels(): Promise<Model[]>;
-    sendMessage(message: string, model: string, history: Message[]): Promise<string>;
+    sendMessage(message: string, model: string, history: Message[], signal?: AbortSignal): Promise<string>;
 }
 //# sourceMappingURL=apiService.d.ts.map

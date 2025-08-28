@@ -10,8 +10,11 @@ export declare class ChatApp {
     private settingsManager;
     private themeSelector;
     private modelSelector;
+    private currentRequest;
     constructor(apiService: ApiService, modelManager: ModelManager, chatUI: ChatUI);
     initialize(): Promise<void>;
+    private setupEscapeHandler;
+    private handleEscape;
     processInput(): Promise<boolean>;
     private handleCommand;
     private sendMessage;

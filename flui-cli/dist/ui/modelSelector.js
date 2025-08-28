@@ -18,9 +18,8 @@ class ModelSelector {
             name: this.formatModelChoice(model, model.id === currentModel.id),
             value: index + 1
         }));
-        const prompt = inquirer_1.default.createPromptModule();
         try {
-            const { modelIndex } = await prompt([
+            const { modelIndex } = await inquirer_1.default.prompt([
                 {
                     type: 'list',
                     name: 'modelIndex',
@@ -35,11 +34,13 @@ class ModelSelector {
                 this.modelManager.selectModel(modelIndex);
                 const newModel = this.modelManager.getCurrentModel();
                 this.settingsManager.setModel(newModel.id, modelIndex);
+                console.log(`\nModel changed to: ${newModel.id}\n`);
                 return true; // Model changed
             }
         }
         catch (error) {
-            // User cancelled
+            // User cancelled - just return false, don't exit
+            console.log('\nModel selection cancelled\n');
             return false;
         }
         return false;

@@ -49,7 +49,7 @@ class ApiService {
             throw new Error('Failed to fetch models');
         }
     }
-    async sendMessage(message, model, history) {
+    async sendMessage(message, model, history, signal) {
         try {
             const messages = [
                 ...history,

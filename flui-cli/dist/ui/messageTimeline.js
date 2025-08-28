@@ -78,10 +78,11 @@ class MessageTimeline {
             formattedMessages.push(formatted);
             // Add spacing between messages
             if (i < this.visibleMessages.length - 1) {
-                // Add extra line break between user and assistant messages
                 const nextMessage = this.visibleMessages[i + 1];
-                if (message.role === 'user' && nextMessage.role === 'assistant') {
-                    formattedMessages.push(''); // Empty line for spacing
+                // Add extra line break between all messages for better readability
+                if ((message.role === 'user' || message.role === 'assistant') &&
+                    (nextMessage.role === 'user' || nextMessage.role === 'assistant')) {
+                    formattedMessages.push(''); // Empty line for spacing (simulates ~20px)
                 }
             }
         }

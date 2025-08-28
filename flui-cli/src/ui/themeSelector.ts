@@ -12,11 +12,8 @@ export class ThemeSelector {
     const themes = this.themeManager.getAvailableThemes();
     const currentTheme = this.themeManager.getCurrentTheme().name;
     
-    // Create custom prompt with live preview
-    const prompt = inquirer.createPromptModule();
-    
     try {
-      const { theme } = await prompt([
+      const { theme } = await inquirer.prompt([
         {
           type: 'list',
           name: 'theme',
@@ -34,10 +31,12 @@ export class ThemeSelector {
       if (theme && theme !== currentTheme) {
         this.themeManager.setTheme(theme);
         this.settingsManager.setTheme(theme);
+        console.log(`\nTheme changed to: ${theme}\n`);
         return true; // Theme changed
       }
     } catch (error) {
-      // User cancelled
+      // User cancelled - just return false, don't exit
+      console.log('\nTheme selection cancelled\n');
       return false;
     }
     
