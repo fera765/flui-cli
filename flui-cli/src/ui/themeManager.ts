@@ -295,6 +295,10 @@ export class ThemeManager {
     return chalk.gray(message);
   }
 
+  formatPrompt(message: string): string {
+    return chalk.cyan.bold(message);
+  }
+
   // Persistence methods
   saveThemePreference(themeName: string): void {
     try {

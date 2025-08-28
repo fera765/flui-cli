@@ -6,13 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatUI = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const themeManager_1 = require("./themeManager");
-const inputBox_1 = require("./inputBox");
+const enhancedInputBox_1 = require("./enhancedInputBox");
 const messageTimeline_1 = require("./messageTimeline");
 class ChatUI {
     constructor() {
         this.spinner = null;
         this.themeManager = new themeManager_1.ThemeManager();
-        this.inputBox = new inputBox_1.InputBox(this.themeManager);
+        this.inputBox = new enhancedInputBox_1.EnhancedInputBox(this.themeManager);
         this.timeline = new messageTimeline_1.MessageTimeline(this.themeManager);
         this.inputBox.initialize();
         // Connect Ctrl+L handler
@@ -95,7 +95,7 @@ class ChatUI {
         this.inputBox.hideThinking();
     }
     async getUserInput(prompt = '') {
-        return this.inputBox.getUserInput();
+        return this.inputBox.getInput();
     }
     clear() {
         console.clear();

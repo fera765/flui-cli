@@ -282,6 +282,9 @@ class ThemeManager {
     formatDim(message) {
         return chalk_1.default.gray(message);
     }
+    formatPrompt(message) {
+        return chalk_1.default.cyan.bold(message);
+    }
     // Persistence methods
     saveThemePreference(themeName) {
         try {
