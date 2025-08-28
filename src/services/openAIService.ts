@@ -1,6 +1,10 @@
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
 import { Message } from './apiService';
+import { NavigationManager } from './navigationManager';
+import { ErrorHandler } from './errorHandler';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface ToolDefinition {
   type: 'function';
@@ -25,37 +29,22 @@ export interface FluiTool {
 export class OpenAIService {
   private openai: OpenAI | null = null;
   private tools: Map<string, FluiTool> = new Map();
-  private useLocalEndpoint: boolean = false;
-  private localEndpoint: string = 'http://localhost:3000/v1'; // Endpoint local sem API key
   private productionEndpoint: string = 'https://api.llm7.io/v1'; // Endpoint de produção sem API key
+  private navigationManager: NavigationManager;
+  private errorHandler: ErrorHandler;
 
-  constructor(apiKey?: string, useLocal: boolean = false, useProduction: boolean = true) {
-    this.useLocalEndpoint = useLocal;
+  constructor(apiKey?: string) {
+    this.navigationManager = new NavigationManager();
+    this.errorHandler = new ErrorHandler();
     
-    if (useLocal) {
-      // Configuração para endpoint local sem API key
-      this.openai = new OpenAI({
-        apiKey: 'dummy-key', // OpenAI SDK requer uma key mesmo que não seja usada
-        baseURL: this.localEndpoint,
-        defaultHeaders: {
-          'Authorization': undefined // Remove o header de autorização
-        } as any
-      });
-    } else if (useProduction) {
-      // Configuração para endpoint de produção LLM7 (sem API key)
-      this.openai = new OpenAI({
-        apiKey: 'not-needed', // LLM7 não precisa de API key
-        baseURL: this.productionEndpoint,
-        defaultHeaders: {
-          'Authorization': undefined // Remove o header de autorização pois LLM7 não precisa
-        } as any
-      });
-    } else if (apiKey) {
-      // Configuração padrão da OpenAI
-      this.openai = new OpenAI({
-        apiKey: apiKey
-      });
-    }
+    // Sempre usa endpoint de produção LLM7 (sem API key)
+    this.openai = new OpenAI({
+      apiKey: apiKey || 'not-needed', // LLM7 não precisa de API key
+      baseURL: this.productionEndpoint,
+      defaultHeaders: {
+        'Authorization': undefined // Remove o header de autorização pois LLM7 não precisa
+      } as any
+    });
 
     this.registerDefaultTools();
   }
@@ -87,15 +76,60 @@ export class OpenAIService {
         }
       },
       execute: async (params) => {
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        const filepath = path.join(process.cwd(), params.filename);
-        await fs.writeFile(filepath, params.content, 'utf8');
-        return {
-          success: true,
-          message: `File "${params.filename}" created successfully`,
-          path: filepath
-        };
+        try {
+          let filepath = params.filename;
+          
+          // Se o caminho contém diretórios, cria eles primeiro
+          if (filepath.includes('/')) {
+            const parts = filepath.split('/');
+            const filename = parts.pop();
+            const dirPath = parts.join('/');
+            
+            // Cria o diretório se não existir
+            const fullDirPath = path.isAbsolute(dirPath) 
+              ? dirPath 
+              : path.join(this.navigationManager.getCurrentDir(), dirPath);
+              
+            if (!fs.existsSync(fullDirPath)) {
+              fs.mkdirSync(fullDirPath, { recursive: true });
+              console.log(`📁 Pasta criada: ${fullDirPath}`);
+            }
+            
+            filepath = path.join(fullDirPath, filename || 'index.md');
+          } else {
+            filepath = path.join(this.navigationManager.getCurrentDir(), filepath);
+          }
+          
+          // Cria o diretório pai se necessário
+          const dir = path.dirname(filepath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          
+          // Escreve o arquivo
+          fs.writeFileSync(filepath, params.content, 'utf8');
+          
+          return {
+            success: true,
+            message: `Arquivo "${params.filename}" criado com sucesso`,
+            path: filepath,
+            relativePath: path.relative(this.navigationManager.getProjectRoot(), filepath)
+          };
+        } catch (error: any) {
+          // Tenta auto-corrigir
+          const fix = await this.errorHandler.analyzeAndFix(error, 'file_write', params);
+          
+          if (fix.fixed && fix.retryable) {
+            // Tenta novamente após correção
+            return await this.tools.get('file_write')!.execute(params);
+          }
+          
+          return {
+            success: false,
+            error: error.message,
+            solution: fix.solution
+          };
+        }
       }
     });
 
@@ -303,6 +337,187 @@ export class OpenAIService {
             'Verify all dependencies are installed',
             'Review recent code changes'
           ]
+        };
+      }
+    });
+
+    // Tool: navigate
+    this.registerTool({
+      name: 'navigate',
+      description: 'Navigate to a directory',
+      schema: {
+        type: 'function',
+        function: {
+          name: 'navigate',
+          description: 'Navigate to a directory or create and navigate if it doesnt exist',
+          parameters: {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                description: 'The path to navigate to'
+              },
+              create: {
+                type: 'boolean',
+                description: 'Create the directory if it doesnt exist',
+                default: false
+              }
+            },
+            required: ['path']
+          }
+        }
+      },
+      execute: async (params) => {
+        try {
+          let result;
+          
+          if (params.create) {
+            result = await this.navigationManager.createAndNavigate(params.path);
+          } else {
+            result = await this.navigationManager.navigateTo(params.path);
+            
+            // Se falhou por não existir, pergunta se deve criar
+            if (!result.success && result.error?.includes('não existe')) {
+              result = await this.navigationManager.createAndNavigate(params.path);
+            }
+          }
+          
+          if (result.success) {
+            return {
+              success: true,
+              message: `Navegado para: ${result.path}`,
+              currentDir: this.navigationManager.getCurrentDir(),
+              status: this.navigationManager.formatStatus()
+            };
+          } else {
+            return {
+              success: false,
+              error: result.error,
+              currentDir: this.navigationManager.getCurrentDir()
+            };
+          }
+        } catch (error: any) {
+          return {
+            success: false,
+            error: error.message
+          };
+        }
+      }
+    });
+
+    // Tool: append_content
+    this.registerTool({
+      name: 'append_content',
+      description: 'Append content to an existing file efficiently',
+      schema: {
+        type: 'function',
+        function: {
+          name: 'append_content',
+          description: 'Append content to a file without loading entire file in memory',
+          parameters: {
+            type: 'object',
+            properties: {
+              path: {
+                type: 'string',
+                description: 'The path to the file'
+              },
+              content: {
+                type: 'string',
+                description: 'The content to append'
+              },
+              separator: {
+                type: 'string',
+                description: 'Separator to add before content',
+                default: '\n'
+              }
+            },
+            required: ['path', 'content']
+          }
+        }
+      },
+      execute: async (params) => {
+        try {
+          const filepath = path.isAbsolute(params.path)
+            ? params.path
+            : path.join(this.navigationManager.getCurrentDir(), params.path);
+          
+          // Verifica se o arquivo existe
+          if (!fs.existsSync(filepath)) {
+            // Cria o arquivo se não existir
+            const dir = path.dirname(filepath);
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(filepath, params.content, 'utf8');
+            return {
+              success: true,
+              message: `Arquivo criado: ${params.path}`,
+              bytesWritten: Buffer.byteLength(params.content, 'utf8')
+            };
+          }
+          
+          // Adiciona conteúdo ao arquivo existente
+          const separator = params.separator || '\n';
+          fs.appendFileSync(filepath, separator + params.content, 'utf8');
+          
+          // Obtém tamanho do arquivo
+          const stats = fs.statSync(filepath);
+          
+          return {
+            success: true,
+            message: `Conteúdo adicionado ao arquivo: ${params.path}`,
+            bytesWritten: Buffer.byteLength(params.content, 'utf8'),
+            totalFileSize: stats.size
+          };
+        } catch (error: any) {
+          // Tenta auto-corrigir
+          const fix = await this.errorHandler.analyzeAndFix(error, 'append_content', params);
+          
+          if (fix.fixed && fix.retryable) {
+            return await this.tools.get('append_content')!.execute(params);
+          }
+          
+          return {
+            success: false,
+            error: error.message,
+            solution: fix.solution
+          };
+        }
+      }
+    });
+
+    // Tool: analyze_context  
+    this.registerTool({
+      name: 'analyze_context',
+      description: 'Analyze current directory context',
+      schema: {
+        type: 'function',
+        function: {
+          name: 'analyze_context',
+          description: 'Analyze the current directory to understand project context',
+          parameters: {
+            type: 'object',
+            properties: {}
+          }
+        }
+      },
+      execute: async () => {
+        const context = this.navigationManager.analyzeContext();
+        const currentDir = this.navigationManager.getCurrentDir();
+        const projectRoot = this.navigationManager.getProjectRoot();
+        
+        return {
+          success: true,
+          currentDirectory: currentDir,
+          projectRoot: projectRoot,
+          isProject: context.isProject,
+          projectType: context.projectType,
+          hasPackageJson: context.hasPackageJson,
+          hasGit: context.hasGit,
+          files: context.files,
+          suggestion: context.isProject 
+            ? 'Você está em um projeto existente. Cuidado ao criar arquivos não relacionados.'
+            : 'Diretório comum. Você pode criar novos projetos aqui.'
         };
       }
     });

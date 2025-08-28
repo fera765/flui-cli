@@ -3,6 +3,8 @@ import { ModelManager } from './services/modelManager';
 import { SettingsManager } from './services/settingsManager';
 import { MemoryManager } from './services/memoryManager';
 import { OpenAIService } from './services/openAIService';
+import { NavigationManager } from './services/navigationManager';
+import { ErrorHandler } from './services/errorHandler';
 import { ChatUI } from './ui/chatUI';
 import { ThemeSelector } from './ui/themeSelector';
 import { ModelSelector } from './ui/modelSelector';
@@ -19,6 +21,8 @@ export class ChatAppProduction {
   private modelSelector: ModelSelector;
   private memoryManager: MemoryManager;
   private openAIService: OpenAIService;
+  private navigationManager: NavigationManager;
+  private errorHandler: ErrorHandler;
   private toolBox: ToolBox;
   private currentRequest: AbortController | null = null;
 
@@ -29,9 +33,11 @@ export class ChatAppProduction {
   ) {
     this.settingsManager = new SettingsManager();
     this.memoryManager = new MemoryManager();
+    this.navigationManager = new NavigationManager();
+    this.errorHandler = new ErrorHandler();
     
     // Inicializa OpenAIService com endpoint de produção LLM7
-    this.openAIService = new OpenAIService(undefined, false, true); // Usa produção (LLM7)
+    this.openAIService = new OpenAIService(); // Sempre usa produção (LLM7)
     console.log(chalk.green('✅ Conectado ao endpoint de produção: https://api.llm7.io/v1'));
     
     this.toolBox = new ToolBox(this.chatUI.getThemeManager());
@@ -157,6 +163,19 @@ export class ChatAppProduction {
     this.chatUI.showThinking();
 
     try {
+      // Analisa contexto do diretório atual
+      const context = this.navigationManager.analyzeContext();
+      
+      // Se está em um projeto e o comando não parece relacionado, pergunta
+      if (context.isProject && this.shouldWarnAboutContext(input, context)) {
+        const warning = `⚠️ Você está em um projeto ${context.projectType || 'existente'}.\n` +
+                       `Esta ação parece não estar relacionada ao projeto.\n` +
+                       `Deseja continuar mesmo assim? (s/n)`;
+        
+        console.log(chalk.yellow(warning));
+        // Por enquanto, continua normalmente (em produção real, aguardaria confirmação)
+      }
+      
       // Detecta intenções do usuário e prepara tools automaticamente
       const toolsNeeded = this.detectToolsNeeded(input);
       
@@ -220,6 +239,37 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
     }
   }
 
+  private shouldWarnAboutContext(input: string, context: any): boolean {
+    const lowerInput = input.toLowerCase();
+    
+    // Lista de palavras-chave relacionadas ao projeto atual
+    const projectKeywords: Record<string, string[]> = {
+      'React': ['component', 'jsx', 'hook', 'state', 'props'],
+      'Vue': ['component', 'vue', 'template', 'computed'],
+      'Angular': ['component', 'service', 'module', 'directive'],
+      'Express': ['route', 'middleware', 'api', 'endpoint'],
+      'Node.js': ['module', 'package', 'npm', 'require']
+    };
+    
+    // Se o comando menciona algo completamente não relacionado
+    const unrelatedKeywords = ['vídeo', 'video', 'roteiro', 'filme', 'música', 'jogo', 'game'];
+    
+    // Verifica se parece não relacionado
+    if (context.projectType && projectKeywords[context.projectType]) {
+      const hasProjectKeyword = projectKeywords[context.projectType].some((kw: string) => 
+        lowerInput.includes(kw)
+      );
+      
+      const hasUnrelatedKeyword = unrelatedKeywords.some((kw: string) => 
+        lowerInput.includes(kw)
+      );
+      
+      return !hasProjectKeyword && hasUnrelatedKeyword;
+    }
+    
+    return false;
+  }
+  
   private detectToolsNeeded(input: string): string[] {
     const tools: string[] = [];
     const lowerInput = input.toLowerCase();
