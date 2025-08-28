@@ -20,6 +20,17 @@ class MemoryManager {
             this.primaryMemory.delete(toRemove);
         }
     }
+    // Método adicional para compatibilidade
+    addPrimaryMessage(message) {
+        const entry = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: 'interaction',
+            content: message.content,
+            timestamp: new Date(),
+            metadata: { role: message.role }
+        };
+        this.addToPrimary(entry);
+    }
     getPrimary(id) {
         return this.primaryMemory.get(id);
     }

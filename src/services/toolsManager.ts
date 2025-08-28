@@ -33,25 +33,72 @@ interface ToolState {
 
 export class ToolsManager {
   private memoryManager: MemoryManager;
-  private apiService: ApiService;
+  private apiService?: ApiService;
+  private openAIService?: any; // Para uso futuro
+  private navigationManager?: any; // Para uso futuro
+  private errorHandler?: any; // Para uso futuro
   private executionHistory: ToolExecutionResult[] = [];
   private toolStates: Map<string, ToolState> = new Map();
   private workingDirectory: string;
   private readonly maxHistorySize = 50;
   private readonly maxDisplayLines = 10;
 
-  constructor(memoryManager: MemoryManager, apiService: ApiService) {
+  constructor(
+    memoryManager: MemoryManager,
+    apiServiceOrOpenAI?: ApiService | any,
+    navigationManager?: any,
+    errorHandler?: any
+  ) {
     this.memoryManager = memoryManager;
-    this.apiService = apiService;
+    
+    // Detectar se é ApiService ou OpenAIService
+    if (apiServiceOrOpenAI && 'sendMessage' in apiServiceOrOpenAI) {
+      this.apiService = apiServiceOrOpenAI as ApiService;
+    } else {
+      this.openAIService = apiServiceOrOpenAI;
+    }
+    
+    this.navigationManager = navigationManager;
+    this.errorHandler = errorHandler;
     this.workingDirectory = process.cwd();
     this.initializeToolStates();
   }
 
   private initializeToolStates(): void {
-    const tools = ['agent', 'shell', 'file_read', 'file_replace', 'find_problem_solution', 'secondary_context'];
+    const tools = ['agent', 'shell', 'file_read', 'file_write', 'file_replace', 'find_problem_solution', 'secondary_context', 'secondary_context_read', 'navigate', 'append_content', 'analyze_context'];
     tools.forEach(tool => {
       this.toolStates.set(tool, { status: 'idle' });
     });
+  }
+  
+  // Método principal para executar qualquer ferramenta
+  async executeTool(toolName: string, params: any): Promise<any> {
+    switch (toolName) {
+      case 'agent':
+        return await this.executeAgent(params.messages || [], params.allowDelegation);
+      case 'shell':
+        return await this.executeShell(params.command);
+      case 'file_read':
+        return await this.fileRead(params.path);
+      case 'file_write':
+        return await this.executeFileWrite(params.filename, params.content);
+      case 'file_replace':
+        return await this.fileReplace(params.path, params.oldText, params.newText);
+      case 'find_problem_solution':
+        return await this.findProblemSolution(params.error);
+      case 'secondary_context':
+        return await this.secondaryContext({ name: params.name, content: params.content });
+      case 'secondary_context_read':
+        return await this.secondaryContextRead(params.name);
+      case 'navigate':
+        return await this.executeNavigate(params.path, params.create);
+      case 'append_content':
+        return await this.executeAppendContent(params.path, params.content, params.separator);
+      case 'analyze_context':
+        return await this.executeAnalyzeContext();
+      default:
+        throw new Error(`Tool ${toolName} not found`);
+    }
   }
 
   // Agent Tool
@@ -67,6 +114,9 @@ export class ToolsManager {
       }));
 
       // Send to LLM
+      if (!this.apiService) {
+        throw new Error('ApiService not available');
+      }
       let response = await this.apiService.sendMessage(
         messages[messages.length - 1].content,
         'mistral-large',
@@ -77,11 +127,13 @@ export class ToolsManager {
       if (!response || response.trim() === '') {
         // Retry with validation prompt
         const validationPrompt = 'Please provide a complete and detailed response.';
-        response = await this.apiService.sendMessage(
-          validationPrompt,
-          'mistral-large',
-          formattedMessages
-        );
+        if (this.apiService) {
+          response = await this.apiService.sendMessage(
+            validationPrompt,
+            'mistral-large',
+            formattedMessages
+          );
+        }
       }
 
       // Check for delegation
@@ -102,11 +154,13 @@ export class ToolsManager {
               { role: 'user' as const, content: 'Based on the delegation result, provide the final response.' }
             ];
             
-            response = await this.apiService.sendMessage(
-              finalMessages[finalMessages.length - 1].content,
-              'mistral-large',
-              finalMessages.slice(0, -1)
-            );
+            if (this.apiService) {
+              response = await this.apiService.sendMessage(
+                finalMessages[finalMessages.length - 1].content,
+                'mistral-large',
+                finalMessages.slice(0, -1)
+              );
+            }
           } catch (e) {
             // Delegation parsing failed, continue with original response
           }
@@ -351,6 +405,10 @@ export class ToolsManager {
 
       const prompt = `Please analyze this error and provide a clear solution:\n\n${processedLog}`;
       
+      if (!this.apiService) {
+        throw new Error('ApiService not available');
+      }
+      
       const response = await this.apiService.sendMessage(
         prompt,
         'mistral-large',
@@ -517,5 +575,219 @@ export class ToolsManager {
 
   clearHistory(): void {
     this.executionHistory = [];
+  }
+  
+  // Novos métodos para ferramentas adicionais
+  async executeFileWrite(filename: string, content: string): Promise<ToolExecutionResult> {
+    const startTime = Date.now();
+    this.setToolStatus('file_write', 'running');
+    
+    try {
+      const fullPath = path.isAbsolute(filename) ? filename : path.join(this.workingDirectory, filename);
+      
+      // Criar diretório se necessário
+      const dir = path.dirname(fullPath);
+      await fs.mkdir(dir, { recursive: true });
+      
+      // Escrever arquivo
+      await fs.writeFile(fullPath, content, 'utf8');
+      
+      const result: ToolExecutionResult = {
+        toolName: 'file_write',
+        status: 'success',
+        output: { path: fullPath, size: content.length },
+        logs: `File written: ${fullPath} (${content.length} bytes)`,
+        displayLogs: `File written: ${filename}`,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('file_write', 'success');
+      this.addToHistory(result);
+      return result;
+    } catch (error: any) {
+      const result: ToolExecutionResult = {
+        toolName: 'file_write',
+        status: 'error',
+        error: error.message,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('file_write', 'error');
+      this.addToHistory(result);
+      return result;
+    }
+  }
+  
+  async executeNavigate(targetPath: string, create = false): Promise<ToolExecutionResult> {
+    const startTime = Date.now();
+    this.setToolStatus('navigate', 'running');
+    
+    try {
+      const fullPath = path.isAbsolute(targetPath) ? targetPath : path.join(this.workingDirectory, targetPath);
+      
+      if (create) {
+        await fs.mkdir(fullPath, { recursive: true });
+      }
+      
+      // Verificar se existe
+      const stats = await fs.stat(fullPath);
+      if (!stats.isDirectory()) {
+        throw new Error('Path is not a directory');
+      }
+      
+      // Atualizar diretório de trabalho
+      this.workingDirectory = fullPath;
+      
+      const result: ToolExecutionResult = {
+        toolName: 'navigate',
+        status: 'success',
+        output: { path: fullPath, created: create },
+        logs: `Navigated to: ${fullPath}`,
+        displayLogs: `Navigated to: ${targetPath}`,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('navigate', 'success');
+      this.addToHistory(result);
+      return result;
+    } catch (error: any) {
+      const result: ToolExecutionResult = {
+        toolName: 'navigate',
+        status: 'error',
+        error: error.message,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('navigate', 'error');
+      this.addToHistory(result);
+      return result;
+    }
+  }
+  
+  async executeAppendContent(filePath: string, content: string, separator = '\n'): Promise<ToolExecutionResult> {
+    const startTime = Date.now();
+    this.setToolStatus('append_content', 'running');
+    
+    try {
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.workingDirectory, filePath);
+      
+      // Verificar se arquivo existe
+      let exists = true;
+      try {
+        await fs.access(fullPath);
+      } catch {
+        exists = false;
+        // Criar diretório se necessário
+        const dir = path.dirname(fullPath);
+        await fs.mkdir(dir, { recursive: true });
+      }
+      
+      // Adicionar conteúdo
+      if (exists) {
+        await fs.appendFile(fullPath, separator + content, 'utf8');
+      } else {
+        await fs.writeFile(fullPath, content, 'utf8');
+      }
+      
+      const result: ToolExecutionResult = {
+        toolName: 'append_content',
+        status: 'success',
+        output: { path: fullPath, appended: content.length, existed: exists },
+        logs: `Content appended to: ${fullPath}`,
+        displayLogs: `Content appended: ${filePath}`,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('append_content', 'success');
+      this.addToHistory(result);
+      return result;
+    } catch (error: any) {
+      const result: ToolExecutionResult = {
+        toolName: 'append_content',
+        status: 'error',
+        error: error.message,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('append_content', 'error');
+      this.addToHistory(result);
+      return result;
+    }
+  }
+  
+  async executeAnalyzeContext(): Promise<ToolExecutionResult> {
+    const startTime = Date.now();
+    this.setToolStatus('analyze_context', 'running');
+    
+    try {
+      const files = await fs.readdir(this.workingDirectory);
+      
+      // Analisar tipo de projeto
+      let projectType = 'unknown';
+      let hasPackageJson = false;
+      let hasGit = false;
+      
+      if (files.includes('package.json')) {
+        hasPackageJson = true;
+        try {
+          const packageContent = await fs.readFile(path.join(this.workingDirectory, 'package.json'), 'utf8');
+          const packageJson = JSON.parse(packageContent);
+          
+          if (packageJson.dependencies?.react) projectType = 'React';
+          else if (packageJson.dependencies?.vue) projectType = 'Vue';
+          else if (packageJson.dependencies?.angular) projectType = 'Angular';
+          else if (packageJson.dependencies?.express) projectType = 'Express';
+          else projectType = 'Node.js';
+        } catch {
+          projectType = 'Node.js';
+        }
+      }
+      
+      if (files.includes('.git')) {
+        hasGit = true;
+      }
+      
+      const context = {
+        currentDirectory: this.workingDirectory,
+        isProject: hasPackageJson || hasGit,
+        projectType,
+        hasPackageJson,
+        hasGit,
+        files: files.slice(0, 20), // Limitar para não sobrecarregar
+        totalFiles: files.length
+      };
+      
+      const result: ToolExecutionResult = {
+        toolName: 'analyze_context',
+        status: 'success',
+        output: context,
+        logs: `Context analyzed: ${projectType} project with ${files.length} files`,
+        displayLogs: `Context: ${projectType}`,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('analyze_context', 'success');
+      this.addToHistory(result);
+      return result;
+    } catch (error: any) {
+      const result: ToolExecutionResult = {
+        toolName: 'analyze_context',
+        status: 'error',
+        error: error.message,
+        timestamp: new Date(),
+        duration: Date.now() - startTime
+      };
+      
+      this.setToolStatus('analyze_context', 'error');
+      this.addToHistory(result);
+      return result;
+    }
   }
 }

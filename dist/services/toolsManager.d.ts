@@ -18,14 +18,18 @@ export interface AgentMessage {
 }
 export declare class ToolsManager {
     private memoryManager;
-    private apiService;
+    private apiService?;
+    private openAIService?;
+    private navigationManager?;
+    private errorHandler?;
     private executionHistory;
     private toolStates;
     private workingDirectory;
     private readonly maxHistorySize;
     private readonly maxDisplayLines;
-    constructor(memoryManager: MemoryManager, apiService: ApiService);
+    constructor(memoryManager: MemoryManager, apiServiceOrOpenAI?: ApiService | any, navigationManager?: any, errorHandler?: any);
     private initializeToolStates;
+    executeTool(toolName: string, params: any): Promise<any>;
     executeAgent(messages: AgentMessage[], allowDelegation?: boolean): Promise<ToolExecutionResult>;
     executeShell(command: string): Promise<ToolExecutionResult>;
     private isUnsafeCommand;
@@ -44,5 +48,9 @@ export declare class ToolsManager {
     private addToHistory;
     getExecutionHistory(): ToolExecutionResult[];
     clearHistory(): void;
+    executeFileWrite(filename: string, content: string): Promise<ToolExecutionResult>;
+    executeNavigate(targetPath: string, create?: boolean): Promise<ToolExecutionResult>;
+    executeAppendContent(filePath: string, content: string, separator?: string): Promise<ToolExecutionResult>;
+    executeAnalyzeContext(): Promise<ToolExecutionResult>;
 }
 //# sourceMappingURL=toolsManager.d.ts.map

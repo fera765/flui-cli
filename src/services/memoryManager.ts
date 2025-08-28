@@ -1,9 +1,14 @@
 import { gzipSync, gunzipSync } from 'zlib';
 
+export interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface MemoryEntry {
   id: string;
   timestamp: Date;
-  type: 'user_message' | 'agent_response' | 'tool_execution' | 'validation' | 'system';
+  type: 'user_message' | 'agent_response' | 'tool_execution' | 'validation' | 'system' | 'interaction';
   content: string;
   metadata?: Record<string, any>;
 }
@@ -46,6 +51,18 @@ export class MemoryManager {
       const toRemove = entries[0][0];
       this.primaryMemory.delete(toRemove);
     }
+  }
+  
+  // Método adicional para compatibilidade
+  addPrimaryMessage(message: Message): void {
+    const entry: MemoryEntry = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'interaction',
+      content: message.content,
+      timestamp: new Date(),
+      metadata: { role: message.role }
+    };
+    this.addToPrimary(entry);
   }
 
   getPrimary(id: string): MemoryEntry | undefined {

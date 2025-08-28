@@ -1,7 +1,11 @@
+export interface Message {
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+}
 export interface MemoryEntry {
     id: string;
     timestamp: Date;
-    type: 'user_message' | 'agent_response' | 'tool_execution' | 'validation' | 'system';
+    type: 'user_message' | 'agent_response' | 'tool_execution' | 'validation' | 'system' | 'interaction';
     content: string;
     metadata?: Record<string, any>;
 }
@@ -25,6 +29,7 @@ export declare class MemoryManager {
     private readonly compressionThreshold;
     constructor();
     addToPrimary(entry: MemoryEntry): void;
+    addPrimaryMessage(message: Message): void;
     getPrimary(id: string): MemoryEntry | undefined;
     getAllPrimary(): MemoryEntry[];
     clearPrimary(): void;
