@@ -1,9 +1,20 @@
 import { ThemeManager, Theme } from '../ui/themeManager';
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+jest.mock('fs');
+
 describe('ThemeManager', () => {
   let themeManager: ThemeManager;
 
   beforeEach(() => {
+    // Mock fs to prevent actual file operations
+    (fs.existsSync as jest.Mock).mockReturnValue(false);
+    (fs.writeFileSync as jest.Mock).mockImplementation();
+    (fs.readFileSync as jest.Mock).mockReturnValue('dark');
+    
     themeManager = new ThemeManager();
   });
 
@@ -132,9 +143,11 @@ describe('ThemeManager', () => {
     });
 
     it('should load saved theme preference', () => {
-      themeManager.saveThemePreference('gruvbox');
+      // Mock fs to simulate saved preference
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readFileSync as jest.Mock).mockReturnValue('gruvbox');
+      
       const newManager = new ThemeManager();
-      newManager.loadThemePreference();
       expect(newManager.getCurrentTheme().name).toBe('gruvbox');
     });
   });

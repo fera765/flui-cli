@@ -81,13 +81,17 @@ class InputBox {
                 case 'left':
                     if (this.cursorPosition > 0) {
                         this.cursorPosition--;
-                        this.rl?.moveCursor(-1, 0);
+                        if (this.rl?.output?.moveCursor) {
+                            this.rl.output.moveCursor(-1, 0);
+                        }
                     }
                     break;
                 case 'right':
                     if (this.cursorPosition < this.currentInput.length) {
                         this.cursorPosition++;
-                        this.rl?.moveCursor(1, 0);
+                        if (this.rl?.output?.moveCursor) {
+                            this.rl.output.moveCursor(1, 0);
+                        }
                     }
                     break;
             }
@@ -97,8 +101,10 @@ class InputBox {
         if (!this.rl)
             return;
         // Clear current line
-        this.rl.clearLine(0);
-        this.rl.moveCursor(-1000, 0);
+        if (this.rl.output?.clearLine) {
+            this.rl.output.clearLine(0);
+            this.rl.output.moveCursor(-1000, 0);
+        }
         // Write updated input
         this.rl.write(this.currentInput);
         this.cursorPosition = this.currentInput.length;
@@ -142,14 +148,18 @@ class InputBox {
         if (!this.rl)
             return;
         // Clear input area
-        this.rl.clearLine(0);
-        this.rl.moveCursor(-1000, 0);
+        if (this.rl.output?.clearLine) {
+            this.rl.output.clearLine(0);
+            this.rl.output.moveCursor(-1000, 0);
+        }
         // Start spinner animation
         this.spinnerInterval = setInterval(() => {
-            if (!this.rl)
+            if (!this.rl || !this.rl.output)
                 return;
-            this.rl.clearLine(0);
-            this.rl.moveCursor(-1000, 0);
+            if (this.rl.output.clearLine) {
+                this.rl.output.clearLine(0);
+                this.rl.output.moveCursor(-1000, 0);
+            }
             const spinner = this.spinnerFrames[this.spinnerIndex];
             this.spinnerIndex = (this.spinnerIndex + 1) % this.spinnerFrames.length;
             const message = this.themeManager.formatInfo(`${spinner} Pensando...`);
@@ -169,15 +179,19 @@ class InputBox {
         if (!this.rl)
             return;
         // Clear spinner
-        this.rl.clearLine(0);
-        this.rl.moveCursor(-1000, 0);
+        if (this.rl.output?.clearLine) {
+            this.rl.output.clearLine(0);
+            this.rl.output.moveCursor(-1000, 0);
+        }
         // Restore input box
         this.display();
     }
     clear() {
         if (!this.rl)
             return;
-        this.rl.clearLine(0);
+        if (this.rl.output?.clearLine) {
+            this.rl.output.clearLine(0);
+        }
         this.rl.write('');
         this.currentInput = '';
         this.cursorPosition = 0;
@@ -185,7 +199,9 @@ class InputBox {
     resetCursor() {
         if (!this.rl)
             return;
-        this.rl.moveCursor(-1000, 0);
+        if (this.rl.output?.moveCursor) {
+            this.rl.output.moveCursor(-1000, 0);
+        }
         this.cursorPosition = 0;
     }
     destroy() {
@@ -194,7 +210,9 @@ class InputBox {
             this.spinnerInterval = null;
         }
         if (this.rl) {
-            this.rl.clearLine(0);
+            if (this.rl.output?.clearLine) {
+                this.rl.output.clearLine(0);
+            }
             this.rl.close();
             this.rl = null;
         }

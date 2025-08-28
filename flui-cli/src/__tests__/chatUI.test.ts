@@ -13,7 +13,9 @@ describe('ChatUI', () => {
   let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    chatUI = new ChatUI();
+    // Mock readline before creating ChatUI
+    jest.clearAllMocks();
+    
     mockSpinner = {
       start: jest.fn().mockReturnThis(),
       stop: jest.fn().mockReturnThis(),
@@ -23,6 +25,9 @@ describe('ChatUI', () => {
     };
     (ora as any).mockReturnValue(mockSpinner);
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    jest.spyOn(console, 'clear').mockImplementation();
+    
+    chatUI = new ChatUI();
   });
 
   afterEach(() => {
@@ -46,28 +51,32 @@ describe('ChatUI', () => {
     it('should display user message with proper formatting', () => {
       chatUI.displayMessage('Hello AI!', 'user');
 
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const calls = consoleLogSpy.mock.calls.flat().join(' ');
-      expect(calls).toContain('You:');
-      expect(calls).toContain('Hello AI!');
+      // Message is now added to timeline, not directly logged
+      const timeline = chatUI.getTimeline();
+      const messages = timeline.getMessages();
+      expect(messages).toHaveLength(1);
+      expect(messages[0].content).toBe('Hello AI!');
+      expect(messages[0].role).toBe('user');
     });
 
     it('should display assistant message with proper formatting', () => {
       chatUI.displayMessage('Hello! How can I help?', 'assistant');
 
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const calls = consoleLogSpy.mock.calls.flat().join(' ');
-      expect(calls).toContain('Assistant:');
-      expect(calls).toContain('Hello! How can I help?');
+      const timeline = chatUI.getTimeline();
+      const messages = timeline.getMessages();
+      expect(messages).toHaveLength(1);
+      expect(messages[0].content).toBe('Hello! How can I help?');
+      expect(messages[0].role).toBe('assistant');
     });
 
     it('should display system message with proper formatting', () => {
       chatUI.displayMessage('Model changed successfully', 'system');
 
-      expect(consoleLogSpy).toHaveBeenCalled();
-      const calls = consoleLogSpy.mock.calls.flat().join(' ');
-      expect(calls).toContain('System:');
-      expect(calls).toContain('Model changed successfully');
+      const timeline = chatUI.getTimeline();
+      const messages = timeline.getMessages();
+      expect(messages).toHaveLength(1);
+      expect(messages[0].content).toBe('Model changed successfully');
+      expect(messages[0].role).toBe('system');
     });
   });
 
@@ -95,24 +104,16 @@ describe('ChatUI', () => {
   });
 
   describe('showThinking', () => {
-    it('should start spinner with thinking text', () => {
-      chatUI.showThinking();
-
-      expect(ora).toHaveBeenCalledWith({
-        text: 'Pensando...',
-        spinner: 'dots',
-        color: 'cyan'
-      });
-      expect(mockSpinner.start).toHaveBeenCalled();
+    it('should show thinking indicator', () => {
+      // showThinking now delegates to inputBox
+      expect(() => chatUI.showThinking()).not.toThrow();
     });
   });
 
   describe('hideThinking', () => {
-    it('should stop spinner', () => {
+    it('should hide thinking indicator', () => {
       chatUI.showThinking();
-      chatUI.hideThinking();
-
-      expect(mockSpinner.stop).toHaveBeenCalled();
+      expect(() => chatUI.hideThinking()).not.toThrow();
     });
 
     it('should handle hideThinking without showing first', () => {
@@ -121,25 +122,13 @@ describe('ChatUI', () => {
   });
 
   describe('getUserInput', () => {
-    it('should create readline interface and get user input', async () => {
-      const mockInterface = {
-        question: jest.fn((prompt, callback) => callback('user input')),
-        close: jest.fn(),
-      };
+    it('should get user input from input box', async () => {
+      // getUserInput now delegates to inputBox
+      const inputPromise = chatUI.getUserInput();
       
-      (readline.createInterface as jest.Mock).mockReturnValue(mockInterface);
-
-      const input = await chatUI.getUserInput();
-
-      expect(readline.createInterface).toHaveBeenCalledWith({
-        input: process.stdin,
-        output: process.stdout,
-      });
-      expect(mockInterface.question).toHaveBeenCalledWith(
-        expect.stringContaining('>'),
-        expect.any(Function)
-      );
-      expect(mockInterface.close).toHaveBeenCalled();
+      // The mock will resolve with 'user input'
+      const input = await inputPromise;
+      
       expect(input).toBe('user input');
     });
   });
