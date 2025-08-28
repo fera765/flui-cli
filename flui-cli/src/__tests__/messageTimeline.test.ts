@@ -121,27 +121,28 @@ describe('MessageTimeline', () => {
     });
   });
 
-  describe('display options', () => {
+    describe('display options', () => {
     it('should clear screen before displaying', () => {
-      const clearSpy = jest.spyOn(console, 'clear').mockImplementation();
+      const writeSpy = jest.spyOn(process.stdout, 'write').mockImplementation();
       
       timeline.addUserMessage('Test');
       timeline.display(true); // Clear screen
-
-      expect(clearSpy).toHaveBeenCalled();
       
-      clearSpy.mockRestore();
+      expect(writeSpy).toHaveBeenCalledWith('\x1Bc');
+      expect(writeSpy).toHaveBeenCalledWith('\x1B[H');
+      
+      writeSpy.mockRestore();
     });
 
     it('should not clear screen when option is false', () => {
-      const clearSpy = jest.spyOn(console, 'clear').mockImplementation();
+      const writeSpy = jest.spyOn(process.stdout, 'write').mockImplementation();
       
       timeline.addUserMessage('Test');
       timeline.display(false); // Don't clear
 
-      expect(clearSpy).not.toHaveBeenCalled();
+      expect(writeSpy).not.toHaveBeenCalledWith('\x1Bc');
       
-      clearSpy.mockRestore();
+      writeSpy.mockRestore();
     });
 
     it('should scroll to latest message', () => {

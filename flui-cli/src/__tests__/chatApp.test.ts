@@ -6,6 +6,9 @@ import { ChatUI } from '../ui/chatUI';
 jest.mock('../services/apiService');
 jest.mock('../services/modelManager');
 jest.mock('../ui/chatUI');
+jest.mock('../services/settingsManager');
+jest.mock('../ui/modelSelector');
+jest.mock('../ui/themeSelector');
 
 describe('ChatApp', () => {
   let chatApp: ChatApp;
@@ -18,11 +21,43 @@ describe('ChatApp', () => {
     mockModelManager = new ModelManager(mockApiService) as jest.Mocked<ModelManager>;
     mockChatUI = new ChatUI() as jest.Mocked<ChatUI>;
     
+    // Mock the timeline and getThemeManager
+    mockChatUI.getTimeline = jest.fn().mockReturnValue({
+      addUserMessage: jest.fn(),
+      addAssistantMessage: jest.fn(),
+      addSystemMessage: jest.fn(),
+      display: jest.fn(),
+      clear: jest.fn(),
+      clearVisible: jest.fn()
+    });
+    
+    mockChatUI.getThemeManager = jest.fn().mockReturnValue({
+      setTheme: jest.fn(),
+      getTheme: jest.fn().mockReturnValue('default')
+    });
+    
     chatApp = new ChatApp(mockApiService, mockModelManager, mockChatUI);
 
     // Setup default mocks
-    mockModelManager.getCurrentModelId.mockReturnValue('gpt-4-turbo');
+    (mockModelManager as any).fetchModels = jest.fn().mockResolvedValue(undefined);
+    (mockModelManager as any).selectModel = jest.fn();
+    mockModelManager.getCurrentModelId = jest.fn().mockReturnValue('gpt-4-turbo');
+    mockModelManager.getCurrentModel = jest.fn().mockReturnValue({
+      id: 'gpt-4-turbo',
+      context_length: 128000,
+      description: 'GPT-4 Turbo'
+    });
+    // Mock getModelList as a property with the correct type
+    (mockModelManager as any).getModelList = jest.fn().mockReturnValue('1. gpt-4-turbo\n2. claude-3-opus\n3. mistral-large');
     mockChatUI.getUserInput.mockResolvedValue('Hello');
+    mockChatUI.displayWelcome = jest.fn();
+    mockChatUI.displayDisclaimer = jest.fn();
+    mockChatUI.displayMessage = jest.fn();
+    mockChatUI.displayError = jest.fn();
+    mockChatUI.displayModels = jest.fn();
+    mockChatUI.showThinking = jest.fn();
+    mockChatUI.hideThinking = jest.fn();
+    mockChatUI.clear = jest.fn();
     mockApiService.sendMessage.mockResolvedValue('Hello! How can I help you?');
   });
 
@@ -66,6 +101,14 @@ describe('ChatApp', () => {
         context_length: 200000,
         description: 'Claude 3 Opus'
       });
+      
+      // Mock the input box to avoid errors
+      mockChatUI.getInputBox.mockReturnValue({
+        pause: jest.fn(),
+        resume: jest.fn(),
+        clear: jest.fn(),
+        destroy: jest.fn()
+      } as any);
 
       const result = await chatApp.processInput();
 
