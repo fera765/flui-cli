@@ -36,6 +36,8 @@ class ChatUI {
         console.log(this.themeManager.formatWarning('  /theme') + this.themeManager.formatBorder(' - Trocar tema'));
         console.log(this.themeManager.formatWarning('  /exit') + this.themeManager.formatBorder(' - Sair do chat'));
         console.log(this.themeManager.formatBorder('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+        // Show input prompt immediately
+        this.inputBox.display();
     }
     displayDisclaimer() {
         console.log(chalk_1.default.bgRed.white('\n ⚠️  AVISO IMPORTANTE ⚠️ \n'));
@@ -47,20 +49,19 @@ class ChatUI {
     displayMessage(message, role) {
         switch (role) {
             case 'user':
-                this.timeline.addUserMessage(message);
+                // For user messages, just print them with the prompt prefix
+                console.log(this.themeManager.formatUserMessage(`> ${message}`));
                 break;
             case 'assistant':
-                this.timeline.addAssistantMessage(message);
+                // For assistant messages, print them directly
+                console.log(this.themeManager.formatAssistantMessage(message));
+                console.log(); // Add spacing
                 break;
             case 'system':
-                this.timeline.addSystemMessage(message);
+                console.log(this.themeManager.formatSystemMessage(message));
                 break;
         }
-        // Clear screen and redraw everything to avoid duplication
-        process.stdout.write('\x1Bc');
-        process.stdout.write('\x1B[H');
-        this.displayWelcome();
-        this.timeline.display(false);
+        // Show prompt for next input
         this.inputBox.display();
     }
     displayError(error) {

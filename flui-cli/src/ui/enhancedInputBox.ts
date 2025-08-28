@@ -268,23 +268,23 @@ export class EnhancedInputBox {
   }
 
   display(): void {
-    // Simple display for now
-    const border = this.themeManager.formatBorder('━'.repeat(this.maxWidth));
-    process.stdout.write('\n' + border + '\n');
+    // Only show prompt, no border spam
     const prompt = this.themeManager.formatPrompt('💬 > ');
     process.stdout.write(prompt);
   }
 
   async getInput(): Promise<string> {
-    // Fallback to simple readline for now to ensure it works
+    // Don't display here, it's already shown
+    
+    // Use simple readline
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      terminal: true
+      terminal: false // Prevent readline from managing the prompt
     });
     
     return new Promise((resolve) => {
-      rl.question('', (answer) => {
+      rl.once('line', (answer) => {
         rl.close();
         if (answer.trim()) {
           this.inputHistory.push(answer);
