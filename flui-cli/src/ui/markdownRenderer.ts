@@ -1,6 +1,15 @@
 import { marked } from 'marked';
-const TerminalRenderer = require('marked-terminal');
 import { ThemeManager } from './themeManager';
+
+let markedTerminal: any;
+try {
+  // Import marked-terminal v7
+  const mt = require('marked-terminal');
+  markedTerminal = mt.markedTerminal || mt.default || mt;
+} catch (error) {
+  // Fallback if marked-terminal is not available
+  markedTerminal = null;
+}
 
 export class MarkdownRenderer {
   private renderer: any;
@@ -10,69 +19,24 @@ export class MarkdownRenderer {
   }
 
   private setupRenderer(): void {
-    // Configure marked-terminal with theme colors
-    const theme = this.themeManager.getCurrentTheme();
+    // Check if markedTerminal is available
+    if (!markedTerminal || typeof markedTerminal !== 'function') {
+      // Use default marked renderer
+      return;
+    }
     
-    this.renderer = new TerminalRenderer({
-      // Code block settings
-      code: (code: string) => {
-        return this.themeManager.formatSecondary(code);
-      },
-      blockquote: (quote: string) => {
-        return this.themeManager.formatBorder('│ ') + quote;
-      },
-      html: (html: string) => html,
-      heading: (text: string, level: number) => {
-        const formatted = this.themeManager.formatPrimary(text.toUpperCase());
-        return '\n' + formatted + '\n';
-      },
-      hr: () => {
-        return this.themeManager.formatBorder('─'.repeat(40)) + '\n';
-      },
-      list: (body: string, ordered: boolean) => {
-        return body;
-      },
-      listitem: (text: string) => {
-        return this.themeManager.formatSecondary('• ') + text + '\n';
-      },
-      paragraph: (text: string) => {
-        return text + '\n';
-      },
-      table: (header: string, body: string) => {
-        return header + body;
-      },
-      tablerow: (content: string) => {
-        return content + '\n';
-      },
-      tablecell: (content: string, flags: any) => {
-        return content + ' ';
-      },
-      // Inline elements
-      strong: (text: string) => {
-        return this.themeManager.formatPrimary(text);
-      },
-      em: (text: string) => {
-        return this.themeManager.formatSecondary(text);
-      },
-      codespan: (code: string) => {
-        return this.themeManager.formatInfo(code);
-      },
-      br: () => '\n',
-      del: (text: string) => {
-        return this.themeManager.formatBorder(text);
-      },
-      link: (href: string, title: string, text: string) => {
-        return this.themeManager.formatInfo(`${text} (${href})`);
-      },
-      image: (href: string, title: string, text: string) => {
-        return this.themeManager.formatInfo(`[Image: ${text || href}]`);
-      },
-      text: (text: string) => text
+    // markedTerminal v7 returns an extension object for marked.use()
+    // We can customize colors but for now use defaults
+    const terminalOptions = markedTerminal({
+      // Options for marked-terminal
+      showSectionPrefix: false,
+      width: 80,
+      reflowText: true,
+      preserveNewlines: true
     });
-
-    marked.setOptions({
-      renderer: this.renderer
-    });
+    
+    // Apply the terminal renderer to marked
+    marked.use(terminalOptions);
   }
 
   render(markdown: string): string {
