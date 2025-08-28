@@ -173,12 +173,27 @@ export class AutonomousAgent {
       if (task.status !== 'completed') {
         task.status = 'needs_revision';
         task.feedback = 'Limite de iterações atingido. Revisão manual necessária.';
+        // IMPORTANTE: Garantir que sempre há um resultado, mesmo que parcial
+        if (!task.result) {
+          task.result = {
+            partial: true,
+            message: 'Resultado parcial - necessita revisão',
+            iterations: task.iterations,
+            feedback: task.feedback
+          };
+        }
       }
       
     } catch (error: any) {
       console.error(chalk.red(`  ❌ Erro na execução: ${error.message}`));
       task.status = 'failed';
       task.feedback = error.message;
+      // IMPORTANTE: Garantir que sempre há um resultado, mesmo em erro
+      task.result = {
+        error: true,
+        message: error.message,
+        iterations: task.iterations
+      };
     }
     
     // Armazenar na memória
