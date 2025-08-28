@@ -35,8 +35,9 @@ describe('ChatUI', () => {
 
       expect(consoleLogSpy).toHaveBeenCalled();
       const calls = consoleLogSpy.mock.calls.flat().join('\n');
-      expect(calls).toContain('LLM Chat CLI');
+      expect(calls).toContain('Flui CLI');
       expect(calls).toContain('/model');
+      expect(calls).toContain('/theme');
       expect(calls).toContain('/exit');
     });
   });

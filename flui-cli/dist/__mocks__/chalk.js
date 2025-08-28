@@ -5,7 +5,9 @@ const createChalkMock = () => {
     const colors = [
         'cyan', 'bold', 'gray', 'white', 'green',
         'yellow', 'red', 'blue', 'magenta', 'dim',
-        'black', 'bgGreen', 'bgRed', 'bgBlue'
+        'black', 'bgGreen', 'bgRed', 'bgBlue',
+        'cyanBright', 'blueBright', 'greenBright', 'yellowBright',
+        'redBright', 'magentaBright', 'blackBright', 'whiteBright'
     ];
     colors.forEach(color => {
         chainable[color] = jest.fn((text) => text);
