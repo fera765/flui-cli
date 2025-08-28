@@ -6,13 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatUI = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const themeManager_1 = require("./themeManager");
-const basicInputBox_1 = require("./basicInputBox");
+const fixedInputBox_1 = require("./fixedInputBox");
 const messageTimeline_1 = require("./messageTimeline");
 class ChatUI {
     constructor() {
         this.spinner = null;
         this.themeManager = new themeManager_1.ThemeManager();
-        this.inputBox = new basicInputBox_1.BasicInputBox(this.themeManager);
+        this.inputBox = new fixedInputBox_1.FixedInputBox(this.themeManager);
         this.timeline = new messageTimeline_1.MessageTimeline(this.themeManager);
         this.inputBox.initialize();
         // Connect Ctrl+L handler
@@ -45,9 +45,12 @@ class ChatUI {
         console.log(chalk_1.default.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
     }
     displayMessage(message, role) {
+        // Move to timeline area (above input box)
+        const timelineRow = (process.stdout.rows || 24) - 3;
+        process.stdout.write(`\x1B[${timelineRow};1H`);
         switch (role) {
             case 'user':
-                // For user messages, just print them with the prompt prefix
+                // For user messages, show with > prefix
                 console.log(this.themeManager.formatUserMessage(`> ${message}`));
                 break;
             case 'assistant':
@@ -59,7 +62,6 @@ class ChatUI {
                 console.log(this.themeManager.formatSystemMessage(message));
                 break;
         }
-        // Don't show prompt here, it will be shown by getInput
     }
     displayError(error) {
         console.log(chalk_1.default.red('\n❌ Error:'), chalk_1.default.red(error));

@@ -1,5 +1,5 @@
 import { ThemeManager } from './themeManager';
-import { BasicInputBox } from './basicInputBox';
+import { FixedInputBox } from './fixedInputBox';
 import { MessageTimeline } from './messageTimeline';
 export declare class ChatUI {
     private spinner;
@@ -15,7 +15,7 @@ export declare class ChatUI {
     displayThemes(themeList: string): void;
     getThemeManager(): ThemeManager;
     getTimeline(): MessageTimeline;
-    getInputBox(): BasicInputBox;
+    getInputBox(): FixedInputBox;
     destroy(): void;
     showThinking(): void;
     hideThinking(): void;
