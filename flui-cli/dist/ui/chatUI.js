@@ -6,13 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatUI = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const themeManager_1 = require("./themeManager");
-const fixedInputBox_1 = require("./fixedInputBox");
+const cleanInputBox_1 = require("./cleanInputBox");
 const messageTimeline_1 = require("./messageTimeline");
 class ChatUI {
     constructor() {
         this.spinner = null;
         this.themeManager = new themeManager_1.ThemeManager();
-        this.inputBox = new fixedInputBox_1.FixedInputBox(this.themeManager);
+        this.inputBox = new cleanInputBox_1.CleanInputBox(this.themeManager);
         this.timeline = new messageTimeline_1.MessageTimeline(this.themeManager);
         this.inputBox.initialize();
         // Connect Ctrl+L handler
@@ -35,19 +35,16 @@ class ChatUI {
         console.log(this.themeManager.formatWarning('  /model [1-3]') + this.themeManager.formatBorder(' - Trocar modelo'));
         console.log(this.themeManager.formatWarning('  /theme') + this.themeManager.formatBorder(' - Trocar tema'));
         console.log(this.themeManager.formatWarning('  /exit') + this.themeManager.formatBorder(' - Sair do chat'));
-        console.log(this.themeManager.formatBorder('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+        console.log(); // Just a blank line instead of border
     }
     displayDisclaimer() {
         console.log(chalk_1.default.bgRed.white('\n ⚠️  AVISO IMPORTANTE ⚠️ \n'));
         console.log(chalk_1.default.red('Este código foi desenvolvido exclusivamente para fins de estudo.'));
         console.log(chalk_1.default.red('O autor não se responsabiliza por qualquer uso ou ação realizada.'));
         console.log(chalk_1.default.red('@LLM7.io - Uso educacional apenas.\n'));
-        console.log(chalk_1.default.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
     }
     displayMessage(message, role) {
-        // Move to timeline area (above input box)
-        const timelineRow = (process.stdout.rows || 24) - 3;
-        process.stdout.write(`\x1B[${timelineRow};1H`);
+        // Simple display without cursor movement
         switch (role) {
             case 'user':
                 // For user messages, show with > prefix

@@ -2,18 +2,18 @@ import chalk from 'chalk';
 import ora from 'ora';
 import * as readline from 'readline';
 import { ThemeManager } from './themeManager';
-import { FixedInputBox } from './fixedInputBox';
+import { CleanInputBox } from './cleanInputBox';
 import { MessageTimeline } from './messageTimeline';
 
 export class ChatUI {
   private spinner: any = null;
   private themeManager: ThemeManager;
-  private inputBox: FixedInputBox;
+  private inputBox: CleanInputBox;
   private timeline: MessageTimeline;
 
   constructor() {
     this.themeManager = new ThemeManager();
-    this.inputBox = new FixedInputBox(this.themeManager);
+    this.inputBox = new CleanInputBox(this.themeManager);
     this.timeline = new MessageTimeline(this.themeManager);
     this.inputBox.initialize();
     
@@ -40,7 +40,7 @@ export class ChatUI {
     console.log(this.themeManager.formatWarning('  /model [1-3]') + this.themeManager.formatBorder(' - Trocar modelo'));
     console.log(this.themeManager.formatWarning('  /theme') + this.themeManager.formatBorder(' - Trocar tema'));
     console.log(this.themeManager.formatWarning('  /exit') + this.themeManager.formatBorder(' - Sair do chat'));
-    console.log(this.themeManager.formatBorder('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
+    console.log(); // Just a blank line instead of border
   }
 
   displayDisclaimer(): void {
@@ -48,14 +48,10 @@ export class ChatUI {
     console.log(chalk.red('Este código foi desenvolvido exclusivamente para fins de estudo.'));
     console.log(chalk.red('O autor não se responsabiliza por qualquer uso ou ação realizada.'));
     console.log(chalk.red('@LLM7.io - Uso educacional apenas.\n'));
-    console.log(chalk.gray('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'));
   }
 
   displayMessage(message: string, role: 'user' | 'assistant' | 'system'): void {
-    // Move to timeline area (above input box)
-    const timelineRow = (process.stdout.rows || 24) - 3;
-    process.stdout.write(`\x1B[${timelineRow};1H`);
-    
+    // Simple display without cursor movement
     switch (role) {
       case 'user':
         // For user messages, show with > prefix
@@ -96,7 +92,7 @@ export class ChatUI {
     return this.timeline;
   }
 
-  getInputBox(): FixedInputBox {
+  getInputBox(): CleanInputBox {
     return this.inputBox;
   }
 
