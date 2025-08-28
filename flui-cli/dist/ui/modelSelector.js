@@ -1,10 +1,6 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelSelector = void 0;
-const inquirer_1 = __importDefault(require("inquirer"));
 class ModelSelector {
     constructor(modelManager, settingsManager, themeManager) {
         this.modelManager = modelManager;
@@ -14,36 +10,58 @@ class ModelSelector {
     async selectModel() {
         const models = this.modelManager.getAvailableModels();
         const currentModel = this.modelManager.getCurrentModel();
-        const choices = models.map((model, index) => ({
-            name: this.formatModelChoice(model, model.id === currentModel.id),
-            value: index + 1
-        }));
-        try {
-            const { modelIndex } = await inquirer_1.default.prompt([
-                {
-                    type: 'list',
-                    name: 'modelIndex',
-                    message: 'Select a model:',
-                    choices,
-                    default: models.findIndex(m => m.id === currentModel.id),
-                    loop: false,
-                    pageSize: 10
-                }
-            ]);
-            if (modelIndex) {
-                this.modelManager.selectModel(modelIndex);
-                const newModel = this.modelManager.getCurrentModel();
-                this.settingsManager.setModel(newModel.id, modelIndex);
-                console.log(`\nModel changed to: ${newModel.id}\n`);
-                return true; // Model changed
+        // Display available models
+        console.log('\n📋 Available Models:\n');
+        models.forEach((model, index) => {
+            const isCurrent = model.id === currentModel.id;
+            const marker = isCurrent ? ' (current)' : '';
+            console.log(`[${index + 1}] ${model.id} (${(model.context_length / 1000).toFixed(0)}k tokens)${marker}`);
+            if (model.description) {
+                console.log(`    ${model.description}`);
             }
-        }
-        catch (error) {
-            // User cancelled - just return false, don't exit
-            console.log('\nModel selection cancelled\n');
-            return false;
-        }
-        return false;
+        });
+        console.log('\nEnter model number (1-3) or press Enter to cancel:');
+        // Simple number input - no inquirer to avoid process termination
+        return new Promise((resolve) => {
+            const stdin = process.stdin;
+            stdin.setRawMode(true);
+            stdin.resume();
+            let input = '';
+            const handler = (key) => {
+                const char = key.toString();
+                if (char === '\r' || char === '\n') {
+                    // Enter pressed
+                    stdin.setRawMode(false);
+                    stdin.pause();
+                    stdin.removeListener('data', handler);
+                    const modelIndex = parseInt(input);
+                    if (modelIndex >= 1 && modelIndex <= models.length) {
+                        this.modelManager.selectModel(modelIndex);
+                        const newModel = this.modelManager.getCurrentModel();
+                        this.settingsManager.setModel(newModel.id, modelIndex);
+                        console.log(`\nModel changed to: ${newModel.id}\n`);
+                        resolve(true);
+                    }
+                    else {
+                        console.log('\nModel selection cancelled\n');
+                        resolve(false);
+                    }
+                }
+                else if (char === '\x03' || char === '\x1b') {
+                    // Ctrl+C or ESC
+                    stdin.setRawMode(false);
+                    stdin.pause();
+                    stdin.removeListener('data', handler);
+                    console.log('\nModel selection cancelled\n');
+                    resolve(false);
+                }
+                else if (char >= '1' && char <= '3') {
+                    input = char;
+                    process.stdout.write(char);
+                }
+            };
+            stdin.on('data', handler);
+        });
     }
     formatModelChoice(model, isCurrent) {
         const name = model.id;

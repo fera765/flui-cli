@@ -109,9 +109,14 @@ class ChatApp {
                         this.chatUI.getTimeline().display(false);
                         this.chatUI.getInputBox().display();
                     }
+                    else {
+                        // Just redraw the input box if cancelled
+                        this.chatUI.getInputBox().display();
+                    }
                 }
                 catch (error) {
-                    console.log('\nModel selection cancelled\n');
+                    console.log('\nModel selection error\n');
+                    this.chatUI.getInputBox().display();
                 }
                 return true;
             case '/theme':
@@ -174,6 +179,7 @@ class ChatApp {
         }
         catch (error) {
             this.chatUI.displayError(`Erro fatal: ${error}`);
+            console.log('[DEBUG] run: Fatal error:', error);
         }
     }
 }
