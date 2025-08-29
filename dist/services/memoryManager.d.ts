@@ -25,6 +25,7 @@ export interface MemoryStatistics {
 export declare class MemoryManager {
     private primaryMemory;
     private secondaryMemory;
+    private contextMemory;
     private readonly maxPrimarySize;
     private readonly compressionThreshold;
     constructor();
@@ -49,5 +50,7 @@ export declare class MemoryManager {
         role: string;
         content: string;
     }>;
+    saveCheckpoint(data: any): Promise<void>;
+    loadCheckpoint(): any;
 }
 //# sourceMappingURL=memoryManager.d.ts.map

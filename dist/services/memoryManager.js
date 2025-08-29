@@ -8,6 +8,7 @@ class MemoryManager {
         this.compressionThreshold = 1024; // Compress if > 1KB
         this.primaryMemory = new Map();
         this.secondaryMemory = new Map();
+        this.contextMemory = new Map();
     }
     // Primary Memory Operations
     addToPrimary(entry) {
@@ -145,6 +146,13 @@ class MemoryManager {
             messages.push({ role, content: entry.content });
         }
         return messages;
+    }
+    async saveCheckpoint(data) {
+        // Save checkpoint to context memory
+        this.contextMemory.set('checkpoint', data);
+    }
+    loadCheckpoint() {
+        return this.contextMemory.get('checkpoint') || null;
     }
 }
 exports.MemoryManager = MemoryManager;

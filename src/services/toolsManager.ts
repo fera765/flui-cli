@@ -577,6 +577,10 @@ export class ToolsManager {
     this.executionHistory = [];
   }
   
+  getAvailableTools(): string[] {
+    return ['file_write', 'file_read', 'shell', 'file_replace', 'find_problem_solution'];
+  }
+  
   // Novos métodos para ferramentas adicionais
   async executeFileWrite(filename: string, content: string): Promise<ToolExecutionResult> {
     const startTime = Date.now();

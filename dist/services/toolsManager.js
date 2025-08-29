@@ -490,6 +490,9 @@ class ToolsManager {
     clearHistory() {
         this.executionHistory = [];
     }
+    getAvailableTools() {
+        return ['file_write', 'file_read', 'shell', 'file_replace', 'find_problem_solution'];
+    }
     // Novos métodos para ferramentas adicionais
     async executeFileWrite(filename, content) {
         const startTime = Date.now();

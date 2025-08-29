@@ -48,6 +48,7 @@ export declare class ToolsManager {
     private addToHistory;
     getExecutionHistory(): ToolExecutionResult[];
     clearHistory(): void;
+    getAvailableTools(): string[];
     executeFileWrite(filename: string, content: string): Promise<ToolExecutionResult>;
     executeNavigate(targetPath: string, create?: boolean): Promise<ToolExecutionResult>;
     executeAppendContent(filePath: string, content: string, separator?: string): Promise<ToolExecutionResult>;
