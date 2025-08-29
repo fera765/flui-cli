@@ -1,0 +1,71 @@
+{
+  "id": "flow-1756433887452-74v5es",
+  "userRequest": "Criar um arquivo de teste com Hello World",
+  "startTime": "2025-08-29T02:18:07.452Z",
+  "status": "validating",
+  "currentLevel": 6,
+  "executions": [
+    {
+      "agentId": "agent-6-documentation",
+      "agentLevel": 6,
+      "input": {
+        "request": "Criar um arquivo de teste com Hello World"
+      },
+      "output": {
+        "agentLevel": 6,
+        "agentName": "Agente de Documentação",
+        "specialization": "Documentação e metadados",
+        "processedData": {
+          "request": "Criar um arquivo de teste com Hello World"
+        },
+        "metadata": {
+          "timestamp": "2025-08-29T02:18:08.899Z",
+          "capabilities": [
+            "geração de documentação",
+            "criação de metadados",
+            "versionamento",
+            "assinaturas digitais"
+          ],
+          "tools": [
+            "file_write",
+            "append_content",
+            "secondary_context_read"
+          ]
+        }
+      },
+      "validationResult": {
+        "approved": false,
+        "confidence": 0.7611020605188689,
+        "feedback": "⚠️ Validação falhou. Confiança: 76.1% (mínimo: 90.0%)",
+        "requiresUserInput": false,
+        "suggestedAdjustments": [
+          "Documentar decisões arquiteturais",
+          "Adicionar análise de segurança"
+        ]
+      },
+      "toolPermissions": [
+        {
+          "toolName": "file_write",
+          "permission": "pending",
+          "timestamp": "2025-08-29T02:18:07.452Z"
+        },
+        {
+          "toolName": "append_content",
+          "permission": "pending",
+          "timestamp": "2025-08-29T02:18:07.452Z"
+        },
+        {
+          "toolName": "secondary_context_read",
+          "permission": "pending",
+          "timestamp": "2025-08-29T02:18:07.452Z"
+        }
+      ],
+      "timestamp": "2025-08-29T02:18:09.594Z",
+      "executionTime": 2142,
+      "retryCount": 2
+    }
+  ],
+  "endTime": "2025-08-29T02:18:09.594Z",
+  "exportedAt": "2025-08-29T02:18:09.594Z",
+  "version": "1.0.0"
+}

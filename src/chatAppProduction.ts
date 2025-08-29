@@ -6,6 +6,9 @@ import { OpenAIService } from './services/openAIService';
 import { NavigationManager } from './services/navigationManager';
 import { ErrorHandler } from './services/errorHandler';
 import { LLMContentGenerator } from './services/llmContentGenerator';
+import { CascadeOrchestrator } from './services/cascadeOrchestrator';
+import { CascadeToolsAdapter } from './services/cascadeToolsAdapter';
+import { ToolsManager } from './services/toolsManager';
 import { ChatUI } from './ui/chatUI';
 import { ThemeSelector } from './ui/themeSelector';
 import { ModelSelector } from './ui/modelSelector';
@@ -27,6 +30,10 @@ export class ChatAppProduction {
   private contentGenerator: LLMContentGenerator;
   private toolBox: ToolBox;
   private currentRequest: AbortController | null = null;
+  private cascadeOrchestrator: CascadeOrchestrator;
+  private cascadeToolsAdapter: CascadeToolsAdapter;
+  private toolsManager: ToolsManager;
+  private useCascadeMode: boolean = true; // Nova arquitetura ativada por padrão
 
   constructor(
     private apiService: ApiService,
@@ -42,6 +49,17 @@ export class ChatAppProduction {
     // Inicializa OpenAIService com endpoint de produção LLM7
     this.openAIService = new OpenAIService(); // Sempre usa produção (LLM7)
     console.log(chalk.green('✅ Conectado ao endpoint de produção: https://api.llm7.io/v1'));
+    
+    // Inicializa nova arquitetura em cascata
+    this.toolsManager = new ToolsManager(
+      this.memoryManager,
+      this.openAIService,
+      this.navigationManager,
+      this.errorHandler
+    );
+    this.cascadeOrchestrator = new CascadeOrchestrator();
+    this.cascadeToolsAdapter = new CascadeToolsAdapter(this.toolsManager);
+    console.log(chalk.cyan('🌀 Nova arquitetura em cascata com 6 agentes inicializada'));
     
     this.toolBox = new ToolBox(this.chatUI.getThemeManager());
     
@@ -82,12 +100,31 @@ export class ChatAppProduction {
       
       console.log(chalk.cyan.bold('\n📋 FLUI CLI - PRODUÇÃO'));
       console.log(chalk.green('✅ Endpoint: https://api.llm7.io/v1 (sem API key necessária)'));
+      
+      console.log(chalk.cyan.bold('\n🌀 NOVA ARQUITETURA EM CASCATA'));
+      console.log(chalk.green(`✅ Modo: ${this.useCascadeMode ? 'Cascata (6 agentes)' : 'Espiral (legado)'}`));
+      console.log(chalk.yellow('\n🤖 Agentes Especializados:'));
+      console.log(chalk.gray('  6️⃣ Agente de Documentação - Metadados e versionamento'));
+      console.log(chalk.gray('  5️⃣ Agente de Otimização - Performance e eficiência'));
+      console.log(chalk.gray('  4️⃣ Agente de Testes - Validação e qualidade'));
+      console.log(chalk.gray('  3️⃣ Agente de Implementação - Codificação técnica'));
+      console.log(chalk.gray('  2️⃣ Agente de Arquitetura - Design e estruturação'));
+      console.log(chalk.gray('  1️⃣ Agente de Requisitos - Análise e decomposição'));
+      console.log(chalk.gray('  🎯 FLUI Central - Validação final e decisão'));
+      
       console.log(chalk.yellow('\n🛠️ Tools disponíveis:'));
       console.log(chalk.gray('  • file_write - Criar e salvar arquivos'));
       console.log(chalk.gray('  • shell - Executar comandos seguros'));
       console.log(chalk.gray('  • file_read - Ler conteúdo de arquivos'));
       console.log(chalk.gray('  • file_replace - Substituir texto em arquivos'));
       console.log(chalk.gray('  • find_problem_solution - Analisar e resolver erros'));
+      console.log(chalk.gray('  • analyze_context - Análise de contexto'));
+      console.log(chalk.gray('  • navigate - Navegação em diretórios'));
+      
+      console.log(chalk.cyan('\n💡 Comandos:'));
+      console.log(chalk.gray('  • /cascade - Ativar modo cascata (nova arquitetura)'));
+      console.log(chalk.gray('  • /spiral - Ativar modo espiral (legado)'));
+      console.log(chalk.gray('  • /mode - Ver modo atual'));
       console.log(chalk.cyan('\n💡 Dica: Peça para criar arquivos, executar comandos ou analisar erros!\n'));
     } catch (error) {
       this.chatUI.displayError(`Erro ao inicializar: ${error}`);
@@ -204,13 +241,45 @@ export class ChatAppProduction {
         this.chatUI.showThinking();
       }
       
-      // INTEGRAÇÃO COM MODO ESPIRAL PARA TAREFAS COMPLEXAS
+      // INTEGRAÇÃO COM NOVA ARQUITETURA EM CASCATA
       const complexity = this.analyzeComplexity(input);
       
-      // Se a tarefa é complexa, usa o modo espiral
-      if (complexity !== 'simple' && (input.toLowerCase().includes('roteiro') || 
-                                      input.toLowerCase().includes('artigo') ||
-                                      input.toLowerCase().includes('pesquis'))) {
+      // Se o modo cascata está ativado e a tarefa é complexa, usa a nova arquitetura
+      if (this.useCascadeMode && complexity !== 'simple') {
+        this.chatUI.hideThinking();
+        console.log(chalk.cyan.bold('🌀 Ativando nova arquitetura em cascata com 6 agentes...'));
+        
+        try {
+          const cascadeResult = await this.cascadeOrchestrator.processRequest(input);
+          
+          if (cascadeResult.status === 'completed') {
+            const summary = this.formatCascadeResults(cascadeResult);
+            return summary;
+          } else if (cascadeResult.status === 'failed') {
+            return `❌ Falha no processamento em cascata: ${cascadeResult.finalResult?.error || 'Erro desconhecido'}`;
+          }
+        } catch (error) {
+          console.log(chalk.red(`❌ Erro na cascata: ${error}`));
+          // Fallback para modo espiral se cascata falhar
+          console.log(chalk.yellow('⚠️ Tentando modo espiral como fallback...'));
+          
+          const { SpiralOrchestrator } = await import('./services/spiralOrchestrator');
+          const orchestrator = new SpiralOrchestrator();
+          const result = await orchestrator.processUserRequest(input);
+          
+          if (result.status === 'completed' && result.artifacts && result.artifacts.length > 0) {
+            return `✅ Tarefa concluída no modo espiral (fallback)!\n📄 Arquivos criados: ${result.artifacts.join(', ')}\n📊 Iterações: ${result.iterations}`;
+          }
+        }
+        
+        this.chatUI.showThinking();
+      }
+      
+      // Modo espiral legado para casos específicos
+      if (!this.useCascadeMode && complexity !== 'simple' && 
+          (input.toLowerCase().includes('roteiro') || 
+           input.toLowerCase().includes('artigo') ||
+           input.toLowerCase().includes('pesquis'))) {
         this.chatUI.hideThinking();
         console.log(chalk.cyan('🌀 Ativando modo espiral para tarefa complexa...'));
         
@@ -615,6 +684,49 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
     return response;
   }
 
+  private formatCascadeResults(cascadeFlow: any): string {
+    let response = chalk.cyan.bold('✅ Processamento em Cascata Concluído!\n\n');
+    
+    response += chalk.yellow('📊 Resumo da Execução:\n');
+    response += chalk.gray(`  • ID do Fluxo: ${cascadeFlow.id}\n`);
+    response += chalk.gray(`  • Status: ${cascadeFlow.status}\n`);
+    response += chalk.gray(`  • Agentes executados: ${cascadeFlow.executions.length}\n`);
+    
+    if (cascadeFlow.metadata) {
+      response += chalk.gray(`  • Tempo total: ${cascadeFlow.metadata.totalExecutionTime}ms\n`);
+      response += chalk.gray(`  • Confiança média: ${(cascadeFlow.metadata.confidenceScore * 100).toFixed(1)}%\n`);
+      response += chalk.gray(`  • Total de reexecuções: ${cascadeFlow.metadata.totalRetries}\n`);
+    }
+    
+    response += chalk.yellow('\n🤖 Execuções por Agente:\n');
+    cascadeFlow.executions.forEach((exec: any) => {
+      const icon = exec.validationResult.approved ? '✅' : '⚠️';
+      response += chalk.gray(`  ${icon} Nível ${exec.agentLevel}: ${exec.agentId}\n`);
+      response += chalk.gray(`     • Confiança: ${(exec.validationResult.confidence * 100).toFixed(1)}%\n`);
+      response += chalk.gray(`     • Tempo: ${exec.executionTime}ms\n`);
+      if (exec.retryCount > 0) {
+        response += chalk.gray(`     • Tentativas: ${exec.retryCount}\n`);
+      }
+    });
+    
+    if (cascadeFlow.finalResult) {
+      response += chalk.yellow('\n📋 Resultado Final:\n');
+      if (typeof cascadeFlow.finalResult === 'string') {
+        response += chalk.white(cascadeFlow.finalResult);
+      } else {
+        response += chalk.white(JSON.stringify(cascadeFlow.finalResult, null, 2));
+      }
+    }
+    
+    if (cascadeFlow.metadata?.provenance && cascadeFlow.metadata.provenance.length > 0) {
+      response += chalk.yellow('\n🔐 Proveniência e Assinaturas:\n');
+      response += chalk.gray(`  • Versões: ${cascadeFlow.metadata.versions?.join(', ') || 'N/A'}\n`);
+      response += chalk.gray(`  • Assinaturas: ${cascadeFlow.metadata.signatures?.length || 0} geradas\n`);
+    }
+    
+    return response;
+  }
+
   private async handleCommand(command: string): Promise<boolean> {
     const [cmd, ...args] = command.slice(1).split(' ');
 
@@ -641,6 +753,24 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
       case 'model':
       case 'modelo':
         await this.modelSelector.selectModel();
+        return true;
+
+      case 'cascade':
+      case 'cascata':
+        this.useCascadeMode = true;
+        console.log(chalk.green('✅ Modo cascata ativado (nova arquitetura com 6 agentes)'));
+        return true;
+
+      case 'spiral':
+      case 'espiral':
+        this.useCascadeMode = false;
+        console.log(chalk.yellow('✅ Modo espiral ativado (arquitetura legada)'));
+        return true;
+
+      case 'mode':
+      case 'modo':
+        console.log(chalk.cyan(`\n📊 Modo atual: ${this.useCascadeMode ? 'Cascata (6 agentes)' : 'Espiral (legado)'}`));
+        console.log(chalk.gray('  Use /cascade ou /spiral para alternar entre modos'));
         return true;
 
       case 'memory':

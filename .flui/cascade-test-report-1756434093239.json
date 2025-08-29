@@ -1,0 +1,71 @@
+{
+  "id": "flow-1756434091293-kqsja",
+  "userRequest": "Analisar e otimizar performance de código JavaScript",
+  "startTime": "2025-08-29T02:21:31.293Z",
+  "status": "validating",
+  "currentLevel": 6,
+  "executions": [
+    {
+      "agentId": "agent-6-documentation",
+      "agentLevel": 6,
+      "input": {
+        "request": "Analisar e otimizar performance de código JavaScript"
+      },
+      "output": {
+        "agentLevel": 6,
+        "agentName": "Agente de Documentação",
+        "specialization": "Documentação e metadados",
+        "processedData": {
+          "request": "Analisar e otimizar performance de código JavaScript"
+        },
+        "metadata": {
+          "timestamp": "2025-08-29T02:21:32.625Z",
+          "capabilities": [
+            "geração de documentação",
+            "criação de metadados",
+            "versionamento",
+            "assinaturas digitais"
+          ],
+          "tools": [
+            "file_write",
+            "append_content",
+            "secondary_context_read"
+          ]
+        }
+      },
+      "validationResult": {
+        "approved": false,
+        "confidence": 0.7863232122049766,
+        "feedback": "⚠️ Validação falhou. Confiança: 78.6% (mínimo: 90.0%)",
+        "requiresUserInput": false,
+        "suggestedAdjustments": [
+          "Documentar decisões arquiteturais",
+          "Adicionar análise de segurança"
+        ]
+      },
+      "toolPermissions": [
+        {
+          "toolName": "file_write",
+          "permission": "pending",
+          "timestamp": "2025-08-29T02:21:26.983Z"
+        },
+        {
+          "toolName": "append_content",
+          "permission": "pending",
+          "timestamp": "2025-08-29T02:21:26.983Z"
+        },
+        {
+          "toolName": "secondary_context_read",
+          "permission": "pending",
+          "timestamp": "2025-08-29T02:21:26.983Z"
+        }
+      ],
+      "timestamp": "2025-08-29T02:21:33.236Z",
+      "executionTime": 1943,
+      "retryCount": 2
+    }
+  ],
+  "endTime": "2025-08-29T02:21:33.236Z",
+  "exportedAt": "2025-08-29T02:21:33.239Z",
+  "version": "1.0.0"
+}
