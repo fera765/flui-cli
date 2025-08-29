@@ -15,13 +15,10 @@
 import { OpenAIService } from './openAIService';
 import { ToolsManager } from './toolsManager';
 import { MemoryManager } from './memoryManager';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { CommandExecutor, CommandResult } from './commandExecutor';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import chalk from 'chalk';
-
-const execAsync = promisify(exec);
 
 // Enhanced interfaces for production-grade development
 export interface ProductionTask {
@@ -126,6 +123,7 @@ export class FluiProduction {
   private openAI: OpenAIService;
   private tools: ToolsManager;
   private memory: MemoryManager;
+  private commandExecutor: CommandExecutor;
   private projectDir: string = '';
   private currentProject: ProjectStructure = {};
   private testResults: Map<string, any> = new Map();
@@ -138,6 +136,7 @@ export class FluiProduction {
     this.openAI = openAI;
     this.tools = tools;
     this.memory = memory;
+    this.commandExecutor = new CommandExecutor();
     
     // Ensure tools manager has memory manager reference
     if (!this.tools['memoryManager']) {
@@ -2144,21 +2143,30 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   private async runFrontendTests(): Promise<any> {
     const frontendPath = path.join(this.projectDir, 'frontend');
     
-    try {
-      // Install dependencies
-      console.log(chalk.gray('    Installing dependencies...'));
-      await execAsync('npm install', { cwd: frontendPath, timeout: 120000 });
-      
-      // Run tests
-      console.log(chalk.gray('    Running tests...'));
-      const { stdout } = await execAsync('npm test -- --run', { cwd: frontendPath, timeout: 60000 });
-      
-      this.testResults.set('frontend-tests', { passed: true, output: stdout });
-      return { success: true, output: stdout };
-    } catch (error: any) {
-      this.testResults.set('frontend-tests', { passed: false, error: error.message });
-      return { success: false, error: error.message };
+    // Install dependencies with intelligent monitoring
+    console.log(chalk.gray('    Installing dependencies...'));
+    const installResult = await this.commandExecutor.npmInstall(frontendPath);
+    
+    if (!installResult.success) {
+      this.testResults.set('frontend-tests', { passed: false, error: installResult.error });
+      return { success: false, error: installResult.error };
     }
+    
+    // Run tests
+    console.log(chalk.gray('    Running tests...'));
+    const testResult = await this.commandExecutor.npmTest(frontendPath);
+    
+    this.testResults.set('frontend-tests', { 
+      passed: testResult.success, 
+      output: testResult.output,
+      error: testResult.error 
+    });
+    
+    return { 
+      success: testResult.success, 
+      output: testResult.output,
+      error: testResult.error 
+    };
   }
 
   /**
@@ -2167,21 +2175,30 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   private async runBackendTests(): Promise<any> {
     const backendPath = path.join(this.projectDir, 'backend');
     
-    try {
-      // Install dependencies
-      console.log(chalk.gray('    Installing dependencies...'));
-      await execAsync('npm install', { cwd: backendPath, timeout: 120000 });
-      
-      // Run tests
-      console.log(chalk.gray('    Running tests...'));
-      const { stdout } = await execAsync('npm test', { cwd: backendPath, timeout: 60000 });
-      
-      this.testResults.set('backend-tests', { passed: true, output: stdout });
-      return { success: true, output: stdout };
-    } catch (error: any) {
-      this.testResults.set('backend-tests', { passed: false, error: error.message });
-      return { success: false, error: error.message };
+    // Install dependencies with intelligent monitoring
+    console.log(chalk.gray('    Installing dependencies...'));
+    const installResult = await this.commandExecutor.npmInstall(backendPath);
+    
+    if (!installResult.success) {
+      this.testResults.set('backend-tests', { passed: false, error: installResult.error });
+      return { success: false, error: installResult.error };
     }
+    
+    // Run tests
+    console.log(chalk.gray('    Running tests...'));
+    const testResult = await this.commandExecutor.npmTest(backendPath);
+    
+    this.testResults.set('backend-tests', { 
+      passed: testResult.success, 
+      output: testResult.output,
+      error: testResult.error 
+    });
+    
+    return { 
+      success: testResult.success, 
+      output: testResult.output,
+      error: testResult.error 
+    };
   }
 
   /**
@@ -2190,13 +2207,14 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   private async buildFrontend(): Promise<any> {
     const frontendPath = path.join(this.projectDir, 'frontend');
     
-    try {
-      console.log(chalk.gray('    Building...'));
-      const { stdout } = await execAsync('npm run build', { cwd: frontendPath, timeout: 60000 });
-      return { success: true, output: stdout };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
+    console.log(chalk.gray('    Building...'));
+    const buildResult = await this.commandExecutor.npmBuild(frontendPath);
+    
+    return { 
+      success: buildResult.success, 
+      output: buildResult.output,
+      error: buildResult.error 
+    };
   }
 
   /**
@@ -2219,12 +2237,14 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
       await new Promise(resolve => setTimeout(resolve, 5000));
       
       // Test if running
-      const { stdout } = await execAsync('curl -s http://localhost:3000');
+      const testResult = await this.commandExecutor.execute('curl -s http://localhost:3000', {
+        timeout: 5000
+      });
       
       // Kill server
-      await execAsync('pkill -f vite').catch(() => {});
+      await this.commandExecutor.execute('pkill -f vite', { timeout: 5000 }).catch(() => {});
       
-      return { success: true, running: stdout.length > 0 };
+      return { success: true, running: testResult.success };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -2236,11 +2256,15 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   private async startBackendServer(): Promise<any> {
     const backendPath = path.join(this.projectDir, 'backend');
     
+    // Build first
+    console.log(chalk.gray('    Building...'));
+    const buildResult = await this.commandExecutor.npmBuild(backendPath);
+    
+    if (!buildResult.success) {
+      return { success: false, error: buildResult.error };
+    }
+    
     try {
-      // Build first
-      console.log(chalk.gray('    Building...'));
-      await execAsync('npm run build', { cwd: backendPath, timeout: 60000 });
-      
       // Start server in background
       const { spawn } = require('child_process');
       const backend = spawn('npm', ['start'], {
@@ -2265,25 +2289,36 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   private async testWithCurl(): Promise<any> {
     const tests = [];
     
-    try {
-      // Health check
-      const health = await execAsync('curl -s http://localhost:3001/health');
-      tests.push({ endpoint: '/health', success: health.stdout.includes('ok') });
-      
-      // API endpoints
-      const users = await execAsync('curl -s http://localhost:3001/api/v1/users');
-      tests.push({ endpoint: '/api/v1/users', success: users.stdout.includes('success') || users.stdout.includes('[') });
-      
-      // POST test
-      const create = await execAsync(`curl -s -X POST http://localhost:3001/api/v1/users -H "Content-Type: application/json" -d '{"email":"test@example.com","password":"Test123!@#","name":"Test User"}'`);
-      tests.push({ endpoint: 'POST /api/v1/users', success: create.stdout.includes('success') || create.stdout.includes('created') });
-      
-    } catch (error: any) {
-      tests.push({ error: error.message });
-    }
+    // Health check
+    const health = await this.commandExecutor.execute('curl -s http://localhost:3001/health', {
+      timeout: 5000
+    });
+    tests.push({ 
+      endpoint: '/health', 
+      success: health.success && health.output.includes('ok') 
+    });
+    
+    // API endpoints
+    const users = await this.commandExecutor.execute('curl -s http://localhost:3001/api/v1/users', {
+      timeout: 5000
+    });
+    tests.push({ 
+      endpoint: '/api/v1/users', 
+      success: users.success && (users.output.includes('success') || users.output.includes('['))
+    });
+    
+    // POST test
+    const create = await this.commandExecutor.execute(
+      `curl -s -X POST http://localhost:3001/api/v1/users -H "Content-Type: application/json" -d '{"email":"test@example.com","password":"Test123!@#","name":"Test User"}'`,
+      { timeout: 5000 }
+    );
+    tests.push({ 
+      endpoint: 'POST /api/v1/users', 
+      success: create.success && (create.output.includes('success') || create.output.includes('created'))
+    });
     
     // Kill server
-    await execAsync('pkill -f "node.*server"').catch(() => {});
+    await this.commandExecutor.execute('pkill -f "node.*server"', { timeout: 5000 }).catch(() => {});
     
     return tests;
   }
@@ -2878,7 +2913,7 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
       if (module) {
         console.log(chalk.gray(`    Installing missing module: ${module}`));
         try {
-          await execAsync(`npm install ${module}`, { cwd: this.projectDir });
+          await this.commandExecutor.execute(`npm install ${module}`, { cwd: this.projectDir });
         } catch {}
       }
     }
