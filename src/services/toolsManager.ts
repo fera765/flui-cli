@@ -558,14 +558,16 @@ export class ToolsManager {
       this.executionHistory.shift();
     }
 
-    // Store in primary memory
-    this.memoryManager.addToPrimary({
-      id: `tool-${Date.now()}`,
-      timestamp: result.timestamp,
-      type: 'tool_execution',
-      content: JSON.stringify(result),
-      metadata: result
-    });
+    // Store in primary memory if method exists
+    if (typeof (this.memoryManager as any).addToPrimary === 'function') {
+      (this.memoryManager as any).addToPrimary({
+        id: `tool-${Date.now()}`,
+        timestamp: result.timestamp,
+        type: 'tool_execution',
+        content: JSON.stringify(result),
+        metadata: result
+      });
+    }
   }
 
   getExecutionHistory(): ToolExecutionResult[] {

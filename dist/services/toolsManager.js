@@ -474,14 +474,16 @@ class ToolsManager {
         if (this.executionHistory.length > this.maxHistorySize) {
             this.executionHistory.shift();
         }
-        // Store in primary memory
-        this.memoryManager.addToPrimary({
-            id: `tool-${Date.now()}`,
-            timestamp: result.timestamp,
-            type: 'tool_execution',
-            content: JSON.stringify(result),
-            metadata: result
-        });
+        // Store in primary memory if method exists
+        if (typeof this.memoryManager.addToPrimary === 'function') {
+            this.memoryManager.addToPrimary({
+                id: `tool-${Date.now()}`,
+                timestamp: result.timestamp,
+                type: 'tool_execution',
+                content: JSON.stringify(result),
+                metadata: result
+            });
+        }
     }
     getExecutionHistory() {
         return [...this.executionHistory];
