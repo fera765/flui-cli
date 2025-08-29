@@ -18,7 +18,10 @@ module.exports = {
     }]
   },
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/../src/$1'
+    '^@/(.*)$': '<rootDir>/../src/$1',
+    '^../../src/services/toolsManager$': '<rootDir>/__mocks__/toolsManager.ts',
+    '^../../src/services/memoryManager$': '<rootDir>/__mocks__/memoryManager.ts',
+    '^../../src/services/openAIService$': '<rootDir>/__mocks__/openAIService.ts'
   },
   collectCoverageFrom: [
     '../src/**/*.{ts,tsx}',

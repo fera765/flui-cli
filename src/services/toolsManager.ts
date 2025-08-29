@@ -168,12 +168,9 @@ export class ToolsManager {
       }
 
       // Store in memory
-      this.memoryManager.addToPrimary({
-        id: `agent-${Date.now()}`,
-        timestamp: new Date(),
-        type: 'agent_response',
-        content: response,
-        metadata: { messages, delegations }
+      this.memoryManager.addPrimaryMessage({
+        role: 'assistant',
+        content: response
       });
 
       const result: ToolExecutionResult = {
