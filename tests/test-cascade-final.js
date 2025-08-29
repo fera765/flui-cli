@@ -11,14 +11,14 @@ async function testCascadeArchitecture() {
   console.log(chalk.yellow('\n📦 Carregando módulos da nova arquitetura...'));
   
   // Importa os módulos compilados
-  const { CascadeOrchestrator } = require('./dist/services/cascadeOrchestrator');
-  const { CascadeAgent } = require('./dist/services/cascadeAgent');
-  const { CascadeToolsAdapter } = require('./dist/services/cascadeToolsAdapter');
-  const { ToolsManager } = require('./dist/services/toolsManager');
-  const { MemoryManager } = require('./dist/services/memoryManager');
-  const { OpenAIService } = require('./dist/services/openAIService');
-  const { NavigationManager } = require('./dist/services/navigationManager');
-  const { ErrorHandler } = require('./dist/services/errorHandler');
+  const { CascadeOrchestrator } = require('../dist/services/cascadeOrchestrator');
+  const { CascadeAgent } = require('../dist/services/cascadeAgent');
+  const { CascadeToolsAdapter } = require('../dist/services/cascadeToolsAdapter');
+  const { ToolsManager } = require('../dist/services/toolsManager');
+  const { MemoryManager } = require('../dist/services/memoryManager');
+  const { OpenAIService } = require('../dist/services/openAIService');
+  const { NavigationManager } = require('../dist/services/navigationManager');
+  const { ErrorHandler } = require('../dist/services/errorHandler');
   
   console.log(chalk.green('✅ Módulos carregados com sucesso'));
   

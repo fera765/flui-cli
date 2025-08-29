@@ -13,8 +13,8 @@ async function testRealCascade() {
   console.log(chalk.yellow('\n📦 Carregando sistema refatorado...'));
   
   // Importa os módulos reais
-  const { CascadeOrchestratorReal } = require('./dist/services/cascadeOrchestratorReal');
-  const { CascadeAgentReal } = require('./dist/services/cascadeAgentReal');
+  const { CascadeOrchestratorReal } = require('../dist/services/cascadeOrchestratorReal');
+  const { CascadeAgentReal } = require('../dist/services/cascadeAgentReal');
   
   console.log(chalk.green('✅ Módulos carregados'));
   

@@ -9,10 +9,10 @@ console.log(chalk.gray('=' .repeat(60)));
 async function runIntegrationTest() {
   try {
     // Importa as classes necessárias
-    const { ChatAppProduction } = require('./dist/chatAppProduction');
-    const { ApiService } = require('./dist/services/apiService');
-    const { ModelManager } = require('./dist/services/modelManager');
-    const { ChatUI } = require('./dist/ui/chatUI');
+    const { ChatAppProduction } = require('../dist/chatAppProduction');
+    const { ApiService } = require('../dist/services/apiService');
+    const { ModelManager } = require('../dist/services/modelManager');
+    const { ChatUI } = require('../dist/ui/chatUI');
     
     console.log(chalk.yellow('\n📦 Inicializando FLUI com nova arquitetura...'));
     
@@ -91,7 +91,7 @@ async function runIntegrationTest() {
     // Testa a arquitetura em cascata diretamente
     console.log(chalk.cyan.bold('\n🌀 TESTE DIRETO DA CASCATA:\n'));
     
-    const { CascadeOrchestrator } = require('./dist/services/cascadeOrchestrator');
+    const { CascadeOrchestrator } = require('../dist/services/cascadeOrchestrator');
     const cascadeOrchestrator = new CascadeOrchestrator();
     
     const testRequests = [

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 const chalk = require('chalk');
-const { CascadeOrchestrator } = require('./dist/services/cascadeOrchestrator');
-const { CascadeToolsAdapter } = require('./dist/services/cascadeToolsAdapter');
-const { ToolsManager } = require('./dist/services/toolsManager');
-const { MemoryManager } = require('./dist/services/memoryManager');
-const { OpenAIService } = require('./dist/services/openAIService');
-const { NavigationManager } = require('./dist/services/navigationManager');
-const { ErrorHandler } = require('./dist/services/errorHandler');
+const { CascadeOrchestrator } = require('../dist/services/cascadeOrchestrator');
+const { CascadeToolsAdapter } = require('../dist/services/cascadeToolsAdapter');
+const { ToolsManager } = require('../dist/services/toolsManager');
+const { MemoryManager } = require('../dist/services/memoryManager');
+const { OpenAIService } = require('../dist/services/openAIService');
+const { NavigationManager } = require('../dist/services/navigationManager');
+const { ErrorHandler } = require('../dist/services/errorHandler');
 
 console.log(chalk.cyan.bold('\n🧪 TESTE DA NOVA ARQUITETURA EM CASCATA\n'));
 console.log(chalk.gray('=' .repeat(50)));
