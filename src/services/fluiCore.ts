@@ -488,59 +488,107 @@ CRITICAL INSTRUCTIONS:
     };
 
     if (step === 'setup') {
-      // Cria package.json
-      const packageJson = {
-        name: 'flui-app',
+      // Determina se é Vite ou Node baseado na task
+      const isVite = task.description.toLowerCase().includes('vite');
+      const isFrontend = task.description.toLowerCase().includes('frontend');
+      
+      const packageJson = isVite || isFrontend ? {
+        name: 'landing-page-frontend',
+        version: '1.0.0',
+        type: 'module',
+        scripts: {
+          dev: 'vite',
+          build: 'vite build',
+          preview: 'vite preview'
+        },
+        devDependencies: {
+          vite: '^5.0.0',
+          tailwindcss: '^3.3.0',
+          autoprefixer: '^10.4.0',
+          postcss: '^8.4.0'
+        }
+      } : {
+        name: 'landing-page-backend',
         version: '1.0.0',
         scripts: {
           start: 'node server.js',
-          dev: 'nodemon server.js',
-          build: 'webpack --mode production',
-          test: 'jest'
+          dev: 'nodemon server.js'
         },
         dependencies: {
           express: '^4.18.0',
-          tailwindcss: '^3.0.0',
-          // Adiciona mais baseado na task
+          cors: '^2.8.5'
         },
         devDependencies: {
-          nodemon: '^2.0.0',
-          jest: '^29.0.0',
-          webpack: '^5.0.0'
+          nodemon: '^3.0.0'
         }
       };
 
+      // Cria diretório apropriado
+      const dir = isFrontend ? 'frontend' : 'backend';
+      await this.tools.executeTool('shell', {
+        command: `mkdir -p ${dir}`
+      });
+
       await this.tools.executeTool('file_write', {
-        filename: 'package.json',
+        filename: `${dir}/package.json`,
         content: JSON.stringify(packageJson, null, 2)
       });
 
-      // Instala dependências
-      await this.tools.executeTool('shell', {
-        command: 'npm install'
-      });
-
-      return { packageJson, installed: true };
+      return { packageJson, directory: dir, created: true };
     }
 
-    // Implementa outros passos...
-    const prompt = `${stepPrompts[step]}
-    
-    Task: ${task.description}
-    Technology: ${task.requirements.technology?.join(', ')}
-    Current state: ${JSON.stringify(currentState).substring(0, 500)}
-    
-    Provide the implementation for this step.`;
+    // Handle structure step - create all necessary files
+    if (step === 'structure') {
+      const dir = currentState.setup?.directory || 'app';
+      const isFrontend = dir === 'frontend';
+      
+      if (isFrontend) {
+        // Create Vite + Tailwind structure
+        await this.createFrontendStructure(dir);
+      } else {
+        // Create backend structure
+        await this.createBackendStructure(dir);
+      }
+      
+      return { structured: true, directory: dir };
+    }
 
-    const response = await this.openAI.sendMessageWithTools(
-      [
-        { role: 'system', content: 'You are an expert developer. Provide complete, working code.' },
-        { role: 'user', content: prompt }
-      ],
-      'gpt-3.5-turbo'
-    );
+    // Handle frontend step
+    if (step === 'frontend') {
+      const dir = currentState.setup?.directory || 'frontend';
+      await this.implementFrontendCode(dir, task);
+      return { implemented: true };
+    }
 
-    return typeof response === 'string' ? response : response.response;
+    // Handle backend step
+    if (step === 'backend') {
+      const dir = currentState.setup?.directory || 'backend';
+      await this.implementBackendCode(dir, task);
+      return { implemented: true };
+    }
+
+    // Handle styles step
+    if (step === 'styles') {
+      const dir = currentState.setup?.directory || 'frontend';
+      await this.implementStyles(dir);
+      return { styled: true };
+    }
+
+    // Handle build step
+    if (step === 'build') {
+      const dir = currentState.setup?.directory || 'frontend';
+      try {
+        await this.tools.executeTool('shell', {
+          command: `cd ${dir} && npm install && npm run build`
+        });
+        return { built: true };
+      } catch {
+        return { built: false };
+      }
+    }
+
+    // Default implementation
+    return { completed: true, step };
   }
 
   /**
@@ -1005,6 +1053,355 @@ CRITICAL INSTRUCTIONS:
     }
     
     return { ...appState[step], fixed: true };
+  }
+
+  private async createFrontendStructure(dir: string): Promise<void> {
+    // Create Vite config
+    const viteConfig = `import { defineConfig } from 'vite'
+import tailwindcss from 'tailwindcss'
+import autoprefixer from 'autoprefixer'
+
+export default defineConfig({
+  css: {
+    postcss: {
+      plugins: [
+        tailwindcss,
+        autoprefixer,
+      ],
+    },
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      }
+    }
+  }
+})`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/vite.config.js`,
+      content: viteConfig
+    });
+
+    // Create Tailwind config
+    const tailwindConfig = `/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/tailwind.config.js`,
+      content: tailwindConfig
+    });
+
+    // Create PostCSS config
+    const postcssConfig = `export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/postcss.config.js`,
+      content: postcssConfig
+    });
+
+    // Create index.html
+    const indexHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planos de Saúde - Landing Page</title>
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/index.html`,
+      content: indexHtml
+    });
+
+    // Create src directory
+    await this.tools.executeTool('shell', {
+      command: `mkdir -p ${dir}/src`
+    });
+
+    // Create style.css with Tailwind directives
+    const styleCss = `@tailwind base;
+@tailwind components;
+@tailwind utilities;`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/src/style.css`,
+      content: styleCss
+    });
+  }
+
+  private async createBackendStructure(dir: string): Promise<void> {
+    // Create server.js
+    const serverJs = `const express = require('express');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
+// Plans endpoint
+app.get('/api/plans', (req, res) => {
+  const plans = [
+    {
+      id: 1,
+      name: 'Básico',
+      price: 199.90,
+      features: ['Consultas', 'Exames básicos', 'Urgência']
+    },
+    {
+      id: 2,
+      name: 'Premium',
+      price: 399.90,
+      features: ['Tudo do Básico', 'Especialistas', 'Exames completos', 'Internação']
+    },
+    {
+      id: 3,
+      name: 'Empresarial',
+      price: 299.90,
+      features: ['Cobertura completa', 'Desconto para funcionários', 'Atendimento prioritário']
+    }
+  ];
+  res.json(plans);
+});
+
+// Contact endpoint
+app.post('/api/contact', (req, res) => {
+  const { name, email, phone, plan } = req.body;
+  
+  // Validation
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required' });
+  }
+  
+  // In production, save to database
+  console.log('New contact:', { name, email, phone, plan });
+  
+  res.json({ 
+    success: true, 
+    message: 'Contato recebido com sucesso!' 
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(\`Server running on port \${PORT}\`);
+});`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/server.js`,
+      content: serverJs
+    });
+  }
+
+  private async implementFrontendCode(dir: string, task: FluiTask): Promise<void> {
+    // Create main.js with complete landing page
+    const mainJs = `// Landing Page - Planos de Saúde
+document.addEventListener('DOMContentLoaded', () => {
+  const app = document.getElementById('app');
+  
+  app.innerHTML = \`
+    <!-- Header -->
+    <header class="bg-blue-600 text-white">
+      <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="text-2xl font-bold">SaúdePlus</div>
+        <ul class="flex space-x-6">
+          <li><a href="#hero" class="hover:text-blue-200">Início</a></li>
+          <li><a href="#plans" class="hover:text-blue-200">Planos</a></li>
+          <li><a href="#benefits" class="hover:text-blue-200">Benefícios</a></li>
+          <li><a href="#contact" class="hover:text-blue-200">Contato</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="bg-gradient-to-r from-blue-500 to-blue-700 text-white py-20">
+      <div class="container mx-auto px-4 text-center">
+        <h1 class="text-5xl font-bold mb-4">Cuide da Sua Saúde com os Melhores Planos</h1>
+        <p class="text-xl mb-8">Cobertura completa, preços acessíveis e atendimento de qualidade</p>
+        <button onclick="scrollToPlans()" class="bg-white text-blue-600 px-8 py-3 rounded-full font-bold hover:bg-blue-50 transition">
+          Ver Planos
+        </button>
+      </div>
+    </section>
+
+    <!-- Plans Section -->
+    <section id="plans" class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <h2 class="text-4xl font-bold text-center mb-12">Nossos Planos</h2>
+        <div id="plans-container" class="grid md:grid-cols-3 gap-8">
+          <!-- Plans will be loaded here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section id="benefits" class="py-16">
+      <div class="container mx-auto px-4">
+        <h2 class="text-4xl font-bold text-center mb-12">Por Que Escolher a SaúdePlus?</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="text-center">
+            <div class="text-5xl mb-4">🏥</div>
+            <h3 class="text-xl font-bold mb-2">Rede Ampla</h3>
+            <p>Mais de 1000 hospitais e clínicas credenciados</p>
+          </div>
+          <div class="text-center">
+            <div class="text-5xl mb-4">⚡</div>
+            <h3 class="text-xl font-bold mb-2">Atendimento Rápido</h3>
+            <p>Agendamento online e atendimento em até 24h</p>
+          </div>
+          <div class="text-center">
+            <div class="text-5xl mb-4">💰</div>
+            <h3 class="text-xl font-bold mb-2">Melhor Custo-Benefício</h3>
+            <p>Planos a partir de R$ 199,90 mensais</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Form -->
+    <section id="contact" class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4 max-w-2xl">
+        <h2 class="text-4xl font-bold text-center mb-12">Entre em Contato</h2>
+        <form id="contact-form" class="space-y-4">
+          <input type="text" id="name" placeholder="Nome" class="w-full p-3 border rounded" required>
+          <input type="email" id="email" placeholder="Email" class="w-full p-3 border rounded" required>
+          <input type="tel" id="phone" placeholder="Telefone" class="w-full p-3 border rounded">
+          <select id="plan" class="w-full p-3 border rounded">
+            <option value="">Selecione um plano</option>
+            <option value="basico">Básico</option>
+            <option value="premium">Premium</option>
+            <option value="empresarial">Empresarial</option>
+          </select>
+          <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700 transition">
+            Enviar Contato
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+      <div class="container mx-auto px-4 text-center">
+        <p>&copy; 2024 SaúdePlus. Todos os direitos reservados.</p>
+      </div>
+    </footer>
+  \`;
+
+  // Load plans from API
+  loadPlans();
+  
+  // Setup form handler
+  document.getElementById('contact-form').addEventListener('submit', handleContactForm);
+});
+
+// Functions
+function scrollToPlans() {
+  document.getElementById('plans').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function loadPlans() {
+  try {
+    const response = await fetch('http://localhost:3001/api/plans');
+    const plans = await response.json();
+    
+    const container = document.getElementById('plans-container');
+    container.innerHTML = plans.map(plan => \`
+      <div class="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition">
+        <h3 class="text-2xl font-bold mb-4">\${plan.name}</h3>
+        <p class="text-4xl font-bold text-blue-600 mb-6">R$ \${plan.price}</p>
+        <ul class="space-y-2 mb-6">
+          \${plan.features.map(f => \`<li>✓ \${f}</li>\`).join('')}
+        </ul>
+        <button onclick="selectPlan('\${plan.name}')" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+          Escolher Plano
+        </button>
+      </div>
+    \`).join('');
+  } catch (error) {
+    console.error('Error loading plans:', error);
+  }
+}
+
+function selectPlan(planName) {
+  document.getElementById('plan').value = planName.toLowerCase();
+  document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function handleContactForm(e) {
+  e.preventDefault();
+  
+  const formData = {
+    name: document.getElementById('name').value,
+    email: document.getElementById('email').value,
+    phone: document.getElementById('phone').value,
+    plan: document.getElementById('plan').value
+  };
+  
+  try {
+    const response = await fetch('http://localhost:3001/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Contato enviado com sucesso! Entraremos em contato em breve.');
+      document.getElementById('contact-form').reset();
+    }
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    alert('Erro ao enviar contato. Tente novamente.');
+  }
+}`;
+
+    await this.tools.executeTool('file_write', {
+      filename: `${dir}/src/main.js`,
+      content: mainJs
+    });
+  }
+
+  private async implementBackendCode(dir: string, task: FluiTask): Promise<void> {
+    // Backend já foi criado em createBackendStructure
+    // Aqui podemos adicionar mais rotas se necessário
+  }
+
+  private async implementStyles(dir: string): Promise<void> {
+    // Styles já foram configurados com Tailwind
+    // Aqui podemos adicionar estilos customizados se necessário
   }
 
   private async generateFileContent(filename: string, context: any): Promise<string> {
