@@ -141,11 +141,13 @@ class ToolsManager {
                     }
                 }
             }
-            // Store in memory
-            this.memoryManager.addPrimaryMessage({
-                role: 'assistant',
-                content: response
-            });
+            // Store in memory if method exists
+            if (typeof this.memoryManager.addPrimaryMessage === 'function') {
+                this.memoryManager.addPrimaryMessage({
+                    role: 'assistant',
+                    content: response
+                });
+            }
             const result = {
                 toolName: 'agent',
                 status: 'success',
