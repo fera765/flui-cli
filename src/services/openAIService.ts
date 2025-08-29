@@ -531,6 +531,34 @@ export class OpenAIService {
     return Array.from(this.tools.values()).map(tool => tool.schema as ChatCompletionTool);
   }
 
+  async chat(
+    messages: Message[],
+    model: string = 'gpt-3.5-turbo'
+  ): Promise<string> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized');
+    }
+
+    try {
+      const openAIMessages: ChatCompletionMessageParam[] = messages.map(msg => ({
+        role: msg.role as 'system' | 'user' | 'assistant',
+        content: msg.content
+      }));
+
+      const completion = await this.openai.chat.completions.create({
+        model: model,
+        messages: openAIMessages,
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+
+      return completion.choices[0].message.content || '';
+    } catch (error) {
+      console.error('Error calling OpenAI:', error);
+      throw error;
+    }
+  }
+
   async sendMessageWithTools(
     messages: Message[],
     model: string = 'gpt-3.5-turbo'

@@ -6,7 +6,7 @@ import { OpenAIService } from './services/openAIService';
 import { NavigationManager } from './services/navigationManager';
 import { ErrorHandler } from './services/errorHandler';
 import { LLMContentGenerator } from './services/llmContentGenerator';
-import { CascadeOrchestrator } from './services/cascadeOrchestrator';
+import { CascadeOrchestratorReal } from './services/cascadeOrchestratorReal';
 import { CascadeToolsAdapter } from './services/cascadeToolsAdapter';
 import { ToolsManager } from './services/toolsManager';
 import { ChatUI } from './ui/chatUI';
@@ -30,10 +30,10 @@ export class ChatAppProduction {
   private contentGenerator: LLMContentGenerator;
   private toolBox: ToolBox;
   private currentRequest: AbortController | null = null;
-  private cascadeOrchestrator: CascadeOrchestrator;
+  private cascadeOrchestrator: CascadeOrchestratorReal;
   private cascadeToolsAdapter: CascadeToolsAdapter;
   private toolsManager: ToolsManager;
-  private useCascadeMode: boolean = true; // Nova arquitetura ativada por padrão
+  // APENAS arquitetura em cascata - sem modo legado
 
   constructor(
     private apiService: ApiService,
@@ -57,7 +57,7 @@ export class ChatAppProduction {
       this.navigationManager,
       this.errorHandler
     );
-    this.cascadeOrchestrator = new CascadeOrchestrator();
+    this.cascadeOrchestrator = new CascadeOrchestratorReal();
     this.cascadeToolsAdapter = new CascadeToolsAdapter(this.toolsManager);
     console.log(chalk.cyan('🌀 Nova arquitetura em cascata com 6 agentes inicializada'));
     
@@ -101,31 +101,32 @@ export class ChatAppProduction {
       console.log(chalk.cyan.bold('\n📋 FLUI CLI - PRODUÇÃO'));
       console.log(chalk.green('✅ Endpoint: https://api.llm7.io/v1 (sem API key necessária)'));
       
-      console.log(chalk.cyan.bold('\n🌀 NOVA ARQUITETURA EM CASCATA'));
-      console.log(chalk.green(`✅ Modo: ${this.useCascadeMode ? 'Cascata (6 agentes)' : 'Espiral (legado)'}`));
-      console.log(chalk.yellow('\n🤖 Agentes Especializados:'));
-      console.log(chalk.gray('  6️⃣ Agente de Documentação - Metadados e versionamento'));
-      console.log(chalk.gray('  5️⃣ Agente de Otimização - Performance e eficiência'));
-      console.log(chalk.gray('  4️⃣ Agente de Testes - Validação e qualidade'));
-      console.log(chalk.gray('  3️⃣ Agente de Implementação - Codificação técnica'));
-      console.log(chalk.gray('  2️⃣ Agente de Arquitetura - Design e estruturação'));
-      console.log(chalk.gray('  1️⃣ Agente de Requisitos - Análise e decomposição'));
-      console.log(chalk.gray('  🎯 FLUI Central - Validação final e decisão'));
+      console.log(chalk.cyan.bold('\n🌀 ARQUITETURA EM CASCATA - PRODUÇÃO REAL'));
+      console.log(chalk.green('✅ Sistema 100% real - Sem mocks ou simulações'));
+      console.log(chalk.yellow('\n🤖 6 Agentes Especializados com LLM:'));
+      console.log(chalk.gray('  6️⃣ Documentação - Gera documentação e metadados reais'));
+      console.log(chalk.gray('  5️⃣ Otimização - Analisa e otimiza com IA'));
+      console.log(chalk.gray('  4️⃣ Testes - Cria e executa testes reais'));
+      console.log(chalk.gray('  3️⃣ Implementação - Gera código funcional'));
+      console.log(chalk.gray('  2️⃣ Arquitetura - Projeta sistemas reais'));
+      console.log(chalk.gray('  1️⃣ Requisitos - Analisa requisições com IA'));
+      console.log(chalk.gray('  🎯 FLUI Central - Decisão final com LLM'));
       
-      console.log(chalk.yellow('\n🛠️ Tools disponíveis:'));
-      console.log(chalk.gray('  • file_write - Criar e salvar arquivos'));
-      console.log(chalk.gray('  • shell - Executar comandos seguros'));
-      console.log(chalk.gray('  • file_read - Ler conteúdo de arquivos'));
-      console.log(chalk.gray('  • file_replace - Substituir texto em arquivos'));
-      console.log(chalk.gray('  • find_problem_solution - Analisar e resolver erros'));
-      console.log(chalk.gray('  • analyze_context - Análise de contexto'));
-      console.log(chalk.gray('  • navigate - Navegação em diretórios'));
+      console.log(chalk.yellow('\n🛠️ Ferramentas Reais:'));
+      console.log(chalk.gray('  • file_write - Cria arquivos no sistema'));
+      console.log(chalk.gray('  • shell - Executa comandos reais'));
+      console.log(chalk.gray('  • file_read - Lê arquivos existentes'));
+      console.log(chalk.gray('  • file_replace - Modifica arquivos'));
+      console.log(chalk.gray('  • find_problem_solution - Resolve problemas'));
+      console.log(chalk.gray('  • analyze_context - Análise com IA'));
+      console.log(chalk.gray('  • navigate - Navega no sistema de arquivos'));
       
-      console.log(chalk.cyan('\n💡 Comandos:'));
-      console.log(chalk.gray('  • /cascade - Ativar modo cascata (nova arquitetura)'));
-      console.log(chalk.gray('  • /spiral - Ativar modo espiral (legado)'));
-      console.log(chalk.gray('  • /mode - Ver modo atual'));
-      console.log(chalk.cyan('\n💡 Dica: Peça para criar arquivos, executar comandos ou analisar erros!\n'));
+      console.log(chalk.cyan('\n⚡ Características:'));
+      console.log(chalk.gray('  • Processamento 100% real com LLM'));
+      console.log(chalk.gray('  • Validação inteligente em cada nível'));
+      console.log(chalk.gray('  • Reexecução automática com feedback'));
+      console.log(chalk.gray('  • Metadados e assinaturas criptográficas'));
+      console.log(chalk.cyan('\n💡 Digite sua requisição e veja a cascata em ação!\n'));
     } catch (error) {
       this.chatUI.displayError(`Erro ao inicializar: ${error}`);
       throw new Error('Failed to initialize chat');
@@ -241,59 +242,29 @@ export class ChatAppProduction {
         this.chatUI.showThinking();
       }
       
-      // INTEGRAÇÃO COM NOVA ARQUITETURA EM CASCATA
-      const complexity = this.analyzeComplexity(input);
+      // PROCESSAMENTO COM ARQUITETURA EM CASCATA REAL
+      this.chatUI.hideThinking();
+      console.log(chalk.cyan.bold('🌀 Processando com arquitetura em cascata (6 agentes com LLM)...'));
       
-      // Se o modo cascata está ativado e a tarefa é complexa, usa a nova arquitetura
-      if (this.useCascadeMode && complexity !== 'simple') {
-        this.chatUI.hideThinking();
-        console.log(chalk.cyan.bold('🌀 Ativando nova arquitetura em cascata com 6 agentes...'));
+      try {
+        const cascadeResult = await this.cascadeOrchestrator.processRequest(input);
         
-        try {
-          const cascadeResult = await this.cascadeOrchestrator.processRequest(input);
-          
-          if (cascadeResult.status === 'completed') {
-            const summary = this.formatCascadeResults(cascadeResult);
-            return summary;
-          } else if (cascadeResult.status === 'failed') {
-            return `❌ Falha no processamento em cascata: ${cascadeResult.finalResult?.error || 'Erro desconhecido'}`;
-          }
-        } catch (error) {
-          console.log(chalk.red(`❌ Erro na cascata: ${error}`));
-          // Fallback para modo espiral se cascata falhar
-          console.log(chalk.yellow('⚠️ Tentando modo espiral como fallback...'));
-          
-          const { SpiralOrchestrator } = await import('./services/spiralOrchestrator');
-          const orchestrator = new SpiralOrchestrator();
-          const result = await orchestrator.processUserRequest(input);
-          
-          if (result.status === 'completed' && result.artifacts && result.artifacts.length > 0) {
-            return `✅ Tarefa concluída no modo espiral (fallback)!\n📄 Arquivos criados: ${result.artifacts.join(', ')}\n📊 Iterações: ${result.iterations}`;
-          }
+        if (cascadeResult.status === 'completed') {
+          const summary = this.formatCascadeResults(cascadeResult);
+          return summary;
+        } else if (cascadeResult.status === 'failed') {
+          return `❌ Falha no processamento: ${cascadeResult.finalResult?.error || 'Erro desconhecido'}`;
         }
         
+        // Sempre retorna resultado da cascata
+        return this.formatCascadeResults(cascadeResult);
+        
+      } catch (error) {
+        console.log(chalk.red(`❌ Erro no processamento: ${error}`));
         this.chatUI.showThinking();
-      }
-      
-      // Modo espiral legado para casos específicos
-      if (!this.useCascadeMode && complexity !== 'simple' && 
-          (input.toLowerCase().includes('roteiro') || 
-           input.toLowerCase().includes('artigo') ||
-           input.toLowerCase().includes('pesquis'))) {
-        this.chatUI.hideThinking();
-        console.log(chalk.cyan('🌀 Ativando modo espiral para tarefa complexa...'));
         
-        const { SpiralOrchestrator } = await import('./services/spiralOrchestrator');
-        const orchestrator = new SpiralOrchestrator();
-        const result = await orchestrator.processUserRequest(input);
-        
-        if (result.status === 'completed' && result.artifacts && result.artifacts.length > 0) {
-          return `✅ Tarefa concluída no modo espiral!\n📄 Arquivos criados: ${result.artifacts.join(', ')}\n📊 Iterações: ${result.iterations}`;
-        } else if (result.status === 'failed') {
-          return `❌ Falha na execução: ${result.feedback || 'Erro desconhecido'}`;
-        }
-        
-        this.chatUI.showThinking();
+        // Não há fallback - apenas cascata
+        return `❌ Erro no processamento: ${error}\n\nPor favor, tente novamente ou reformule sua requisição.`;
       }
       
       // Detecta intenções do usuário e prepara tools automaticamente
@@ -757,20 +728,13 @@ Por favor, forneça uma resposta amigável confirmando o que foi feito.`;
 
       case 'cascade':
       case 'cascata':
-        this.useCascadeMode = true;
-        console.log(chalk.green('✅ Modo cascata ativado (nova arquitetura com 6 agentes)'));
-        return true;
-
-      case 'spiral':
-      case 'espiral':
-        this.useCascadeMode = false;
-        console.log(chalk.yellow('✅ Modo espiral ativado (arquitetura legada)'));
-        return true;
-
       case 'mode':
       case 'modo':
-        console.log(chalk.cyan(`\n📊 Modo atual: ${this.useCascadeMode ? 'Cascata (6 agentes)' : 'Espiral (legado)'}`));
-        console.log(chalk.gray('  Use /cascade ou /spiral para alternar entre modos'));
+        console.log(chalk.cyan('\n📊 Sistema FLUI - Arquitetura em Cascata'));
+        console.log(chalk.green('✅ 6 Agentes especializados com LLM real'));
+        console.log(chalk.gray('  • Processamento sem mocks ou simulações'));
+        console.log(chalk.gray('  • Validação real com IA'));
+        console.log(chalk.gray('  • Execução de ferramentas reais'));
         return true;
 
       case 'memory':
