@@ -9,6 +9,7 @@
     "dev:original": "ts-node src/index.ts",
     "dev:tools": "ts-node src/index-tools.ts",
     "dev:enhanced": "ts-node src/index-enhanced.ts",
+    "autonomous": "ts-node src/runAutonomous.ts",
     "test": "cd tests && npm test",
     "test:unit": "cd tests && npm run test:unit",
     "test:integration": "cd tests && npm run test:integration",
@@ -17,7 +18,7 @@
     "test:coverage": "cd tests && npm run test:coverage",
     "test:all": "cd tests && npm run test:all",
     "test:install": "cd tests && npm install",
-    "clean": "rm -rf dist test-output",
+    "clean": "rm -rf dist test-output flui-autonomous-*",
     "rebuild": "npm run clean && npm run build"
   },
   "keywords": [],
