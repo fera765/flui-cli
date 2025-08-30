@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Flui CLI - Versão Principal com Tools Integradas
- * Endpoint: https://api.llm7.io/v1 (sem API key necessária)
+ * Flui CLI - Sistema Unificado
+ * CLI única com capacidade autônoma e ultra integrada
  */
 export {};
 //# sourceMappingURL=index.d.ts.map
