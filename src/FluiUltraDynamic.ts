@@ -150,8 +150,16 @@ export class FluiUltraDynamic {
   private async shouldGenerateContent(analysis: any, intent: string): Promise<boolean> {
     // Decisão baseada puramente na análise da LLM
     if (analysis.confidence > 0.7 && analysis.action) {
+      const actionLower = analysis.action.toLowerCase();
       const generativeActions = await this.identifyGenerativeActions();
-      return generativeActions.includes(analysis.action.toLowerCase());
+      
+      // Verifica se a ação contém alguma palavra generativa
+      for (const action of generativeActions) {
+        if (actionLower.includes(action)) {
+          this.log(`Generative action detected: ${action} in "${actionLower}"`);
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -162,7 +170,12 @@ export class FluiUltraDynamic {
   private async identifyGenerativeActions(): Promise<string[]> {
     // Em vez de lista fixa, poderia consultar LLM
     // Por performance, usando cache dinâmico
-    return ['create', 'generate', 'write', 'develop', 'produce', 'make', 'build'];
+    return [
+      'create', 'generate', 'write', 'develop', 'produce', 'make', 'build',
+      'crie', 'criar', 'escreva', 'escrever', 'gere', 'gerar', 
+      'desenvolva', 'desenvolver', 'produza', 'produzir', 'faça', 'fazer',
+      'elabore', 'elaborar', 'componha', 'compor', 'redija', 'redigir'
+    ];
   }
   
   /**
