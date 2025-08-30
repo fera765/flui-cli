@@ -1,0 +1,1 @@
+export default function Accordion(props: any) { return <div {...props} />; }

@@ -1,0 +1,1 @@
+export default function BlogCard(props: any) { return <div {...props} />; }

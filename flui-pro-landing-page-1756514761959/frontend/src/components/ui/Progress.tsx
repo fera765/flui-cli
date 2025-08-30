@@ -1,0 +1,2 @@
+import React from 'react';
+export default function Progress({ value }: any) { return <div className="w-full bg-gray-200 rounded"><div className="bg-primary-500 h-2 rounded" style={{width: value + '%'}} /></div>; }

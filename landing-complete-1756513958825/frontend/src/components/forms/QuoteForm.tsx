@@ -1,0 +1,1 @@
+export default function QuoteForm() { return <form>Quote Form</form>; }

@@ -1,0 +1,1 @@
+export default function Badge(props: any) { return <span {...props} />; }
