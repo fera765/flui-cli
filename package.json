@@ -10,6 +10,7 @@
     "dev:tools": "ts-node src/index-tools.ts",
     "dev:enhanced": "ts-node src/index-enhanced.ts",
     "autonomous": "ts-node src/runAutonomous.ts",
+    "ultra": "ts-node src/runUltraAutonomous.ts",
     "test": "cd tests && npm test",
     "test:unit": "cd tests && npm run test:unit",
     "test:integration": "cd tests && npm run test:integration",
