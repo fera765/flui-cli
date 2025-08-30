@@ -11,7 +11,7 @@ export class RealTimeMonitor {
     averageWords: 0,
     averageTime: 0,
     dynamicScore: 100,
-    errors: []
+    errors: [] as string[]
   };
   
   private startTime: number = 0;
@@ -131,13 +131,13 @@ export class RealTimeMonitor {
     console.log(chalk.gray(`   Score dinâmico: ${this.metrics.dynamicScore}%`));
     
     console.log(chalk.white('\n⏱️ TIMELINE:'));
-    this.currentRequest.steps.forEach(step => {
+    this.currentRequest.steps.forEach((step: any) => {
       console.log(chalk.gray(`   [${step.time}ms] ${step.step}`));
     });
     
     if (this.currentRequest.errors.length > 0) {
       console.log(chalk.red('\n❌ ERROS:'));
-      this.currentRequest.errors.forEach(err => {
+      this.currentRequest.errors.forEach((err: any) => {
         console.log(chalk.red(`   • ${err}`));
       });
     }
