@@ -1,1 +1,0 @@
-{"version":3,"file":"markdownRenderer.d.ts","sourceRoot":"","sources":["../../src/ui/markdownRenderer.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAkD9C,qBAAa,gBAAgB;IACf,OAAO,CAAC,YAAY;gBAAZ,YAAY,EAAE,YAAY;IAE9C,MAAM,CAAC,QAAQ,EAAE,MAAM,GAAG,MAAM;IAgEhC,YAAY,CAAC,QAAQ,EAAE,MAAM,GAAG,MAAM;CAwBvC"}
