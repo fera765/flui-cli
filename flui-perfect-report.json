@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-08-30T15:22:35.350Z",
+  "results": [
+    {
+      "name": "Ebook sobre Inteligência Artificial",
+      "words": 20360,
+      "score": 100,
+      "dynamic": false,
+      "duration": 66.734
+    },
+    {
+      "name": "Artigo sobre Blockchain e Web3",
+      "words": 20541,
+      "score": 100,
+      "dynamic": false,
+      "duration": 68.956
+    },
+    {
+      "name": "Manual Completo de Python",
+      "words": 20974,
+      "score": 100,
+      "dynamic": false,
+      "duration": 87.169
+    }
+  ],
+  "summary": {
+    "avgScore": 100,
+    "avgWords": 20625,
+    "all20k": true,
+    "allDynamic": false,
+    "success": false
+  }
+}
