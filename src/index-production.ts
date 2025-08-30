@@ -8,15 +8,15 @@
 import { ApiService } from './services/apiService';
 import { ModelManager } from './services/modelManager';
 import { ChatUI } from './ui/chatUI';
-import { ChatAppProduction } from './chatAppProduction';
+import { ChatAppProductionFixed } from './chatAppProductionFixed';
 import chalk from 'chalk';
 
 async function main() {
   console.clear();
   console.log(chalk.cyan.bold('=' .repeat(70)));
-  console.log(chalk.cyan.bold('  🚀 FLUI CLI - PRODUÇÃO'));
+  console.log(chalk.cyan.bold('  🚀 FLUI CLI - PRODUÇÃO ENHANCED'));
   console.log(chalk.green.bold('  Endpoint: https://api.llm7.io/v1'));
-  console.log(chalk.yellow.bold('  Sem API key necessária!'));
+  console.log(chalk.yellow.bold('  Geração 100% Dinâmica via LLM!'));
   console.log(chalk.cyan.bold('=' .repeat(70)));
   console.log('');
   
@@ -24,7 +24,7 @@ async function main() {
   const modelManager = new ModelManager(apiService);
   const chatUI = new ChatUI();
   
-  const chatApp = new ChatAppProduction(apiService, modelManager, chatUI);
+  const chatApp = new ChatAppProductionFixed(apiService, modelManager, chatUI);
   await chatApp.run();
 }
 
