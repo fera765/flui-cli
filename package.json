@@ -5,8 +5,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index-full-dynamic.js",
-    "dev": "ts-node src/index-full-dynamic.ts",
-    "flui": "ts-node src/index-full-dynamic.ts",
+    "dev": "ts-node src/index-enhanced.ts",
+    "flui": "ts-node src/index-enhanced.ts",
     "flui-dynamic": "ts-node src/index-full-dynamic.ts",
     "flui-old": "ts-node src/index-production.ts",
     "test": "cd tests && npm test",
