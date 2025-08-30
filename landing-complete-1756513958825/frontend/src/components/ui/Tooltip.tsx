@@ -1,0 +1,1 @@
+export default function Tooltip(props: any) { return <div {...props} />; }

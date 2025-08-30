@@ -141,14 +141,13 @@ class ToolsManager {
                     }
                 }
             }
-            // Store in memory
-            this.memoryManager.addToPrimary({
-                id: `agent-${Date.now()}`,
-                timestamp: new Date(),
-                type: 'agent_response',
-                content: response,
-                metadata: { messages, delegations }
-            });
+            // Store in memory if method exists
+            if (typeof this.memoryManager.addPrimaryMessage === 'function') {
+                this.memoryManager.addPrimaryMessage({
+                    role: 'assistant',
+                    content: response
+                });
+            }
             const result = {
                 toolName: 'agent',
                 status: 'success',
@@ -475,20 +474,25 @@ class ToolsManager {
         if (this.executionHistory.length > this.maxHistorySize) {
             this.executionHistory.shift();
         }
-        // Store in primary memory
-        this.memoryManager.addToPrimary({
-            id: `tool-${Date.now()}`,
-            timestamp: result.timestamp,
-            type: 'tool_execution',
-            content: JSON.stringify(result),
-            metadata: result
-        });
+        // Store in primary memory if method exists
+        if (typeof this.memoryManager.addToPrimary === 'function') {
+            this.memoryManager.addToPrimary({
+                id: `tool-${Date.now()}`,
+                timestamp: result.timestamp,
+                type: 'tool_execution',
+                content: JSON.stringify(result),
+                metadata: result
+            });
+        }
     }
     getExecutionHistory() {
         return [...this.executionHistory];
     }
     clearHistory() {
         this.executionHistory = [];
+    }
+    getAvailableTools() {
+        return ['file_write', 'file_read', 'shell', 'file_replace', 'find_problem_solution'];
     }
     // Novos métodos para ferramentas adicionais
     async executeFileWrite(filename, content) {

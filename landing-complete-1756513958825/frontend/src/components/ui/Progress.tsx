@@ -1,0 +1,1 @@
+export default function Progress(props: any) { return <div {...props} />; }

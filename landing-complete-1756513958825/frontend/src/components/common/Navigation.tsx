@@ -1,0 +1,1 @@
+export default function Navigation(props: any) { return <nav {...props}>Nav</nav>; }

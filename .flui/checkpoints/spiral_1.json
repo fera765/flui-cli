@@ -1,0 +1,17 @@
+{
+  "level": 1,
+  "levelData": {
+    "number": 1,
+    "strategy": "research",
+    "score": 0,
+    "result": null,
+    "previousContext": null
+  },
+  "result": {
+    "levels": [],
+    "finalScore": 0,
+    "scoreProgression": [],
+    "cascadeEnabled": true
+  },
+  "timestamp": "2025-08-29T10:19:09.415Z"
+}

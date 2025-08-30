@@ -167,14 +167,13 @@ export class ToolsManager {
         }
       }
 
-      // Store in memory
-      this.memoryManager.addToPrimary({
-        id: `agent-${Date.now()}`,
-        timestamp: new Date(),
-        type: 'agent_response',
-        content: response,
-        metadata: { messages, delegations }
-      });
+      // Store in memory if method exists
+      if (typeof this.memoryManager.addPrimaryMessage === 'function') {
+        this.memoryManager.addPrimaryMessage({
+          role: 'assistant',
+          content: response
+        });
+      }
 
       const result: ToolExecutionResult = {
         toolName: 'agent',
@@ -559,14 +558,16 @@ export class ToolsManager {
       this.executionHistory.shift();
     }
 
-    // Store in primary memory
-    this.memoryManager.addToPrimary({
-      id: `tool-${Date.now()}`,
-      timestamp: result.timestamp,
-      type: 'tool_execution',
-      content: JSON.stringify(result),
-      metadata: result
-    });
+    // Store in primary memory if method exists
+    if (typeof (this.memoryManager as any).addToPrimary === 'function') {
+      (this.memoryManager as any).addToPrimary({
+        id: `tool-${Date.now()}`,
+        timestamp: result.timestamp,
+        type: 'tool_execution',
+        content: JSON.stringify(result),
+        metadata: result
+      });
+    }
   }
 
   getExecutionHistory(): ToolExecutionResult[] {
@@ -575,6 +576,10 @@ export class ToolsManager {
 
   clearHistory(): void {
     this.executionHistory = [];
+  }
+  
+  getAvailableTools(): string[] {
+    return ['file_write', 'file_read', 'shell', 'file_replace', 'find_problem_solution'];
   }
   
   // Novos métodos para ferramentas adicionais

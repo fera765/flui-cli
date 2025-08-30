@@ -1,0 +1,1 @@
+export default function PlanCard(props: any) { return <div {...props} />; }

@@ -31,12 +31,14 @@ export interface MemoryStatistics {
 export class MemoryManager {
   private primaryMemory: Map<string, MemoryEntry>;
   private secondaryMemory: Map<string, string>;
+  private contextMemory: Map<string, any>;
   private readonly maxPrimarySize = 100;
   private readonly compressionThreshold = 1024; // Compress if > 1KB
 
   constructor() {
     this.primaryMemory = new Map();
     this.secondaryMemory = new Map();
+    this.contextMemory = new Map();
   }
 
   // Primary Memory Operations
@@ -202,5 +204,14 @@ export class MemoryManager {
     }
 
     return messages;
+  }
+  
+  async saveCheckpoint(data: any): Promise<void> {
+    // Save checkpoint to context memory
+    this.contextMemory.set('checkpoint', data);
+  }
+  
+  loadCheckpoint(): any {
+    return this.contextMemory.get('checkpoint') || null;
   }
 }

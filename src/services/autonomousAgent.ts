@@ -37,17 +37,17 @@ export interface AgentPersona {
 }
 
 export class AutonomousAgent {
-  private id: string;
-  private persona: AgentPersona;
-  private capabilities: AgentCapabilities;
-  private toolsManager: ToolsManager;
-  private memoryManager: MemoryManager;
-  private openAIService: OpenAIService;
-  private subAgents: Map<string, AutonomousAgent> = new Map();
-  private taskHistory: AgentTask[] = [];
-  private currentTask: AgentTask | null = null;
-  private parentAgent: AutonomousAgent | null = null;
-  private validationCriteria: string[] = [];
+  protected id: string;
+  protected persona: AgentPersona;
+  protected capabilities: AgentCapabilities;
+  protected toolsManager: ToolsManager;
+  protected memoryManager: MemoryManager;
+  protected openAIService: OpenAIService;
+  protected subAgents: Map<string, AutonomousAgent> = new Map();
+  protected taskHistory: AgentTask[] = [];
+  protected currentTask: AgentTask | null = null;
+  protected parentAgent: AutonomousAgent | null = null;
+  protected validationCriteria: string[] = [];
   
   constructor(
     persona: AgentPersona,
