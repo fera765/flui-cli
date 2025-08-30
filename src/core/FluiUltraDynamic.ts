@@ -126,7 +126,7 @@ export class FluiUltraDynamic {
       
       const chunk = response.data.choices[0].message.content;
       content += (iterations > 1 ? '\n\n' : '') + chunk;
-      words = content.split(/\s+/).filter(w => w.length > 0).length;
+      words = content.split(/\s+/).filter((w: string) => w.length > 0).length;
       
       console.log(chalk.gray(`   Iteração ${iterations}: ${words}/${targetWords} palavras`));
       
@@ -182,7 +182,7 @@ export class FluiUltraDynamic {
    * Valida qualidade via LLM
    */
   private async validateQuality(content: string, targetWords: number): Promise<number> {
-    const actualWords = content.split(/\s+/).filter(w => w.length > 0).length;
+    const actualWords = content.split(/\s+/).filter((w: string) => w.length > 0).length;
     
     const response = await axios.post(this.apiEndpoint, {
       model: 'gpt-3.5-turbo',

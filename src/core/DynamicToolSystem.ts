@@ -222,7 +222,7 @@ export class DynamicToolSystem {
       
       const chunk = response.data.choices[0].message.content;
       content += (words > 0 ? '\n\n' : '') + chunk;
-      words = content.split(/\s+/).filter(w => w.length > 0).length;
+      words = content.split(/\s+/).filter((w: string) => w.length > 0).length;
       
       console.log(`📝 Progresso: ${words}/${target} palavras`);
       
@@ -252,7 +252,7 @@ export class DynamicToolSystem {
   private async validateQuality(params: any): Promise<any> {
     const { content, requirements = {} } = params;
     
-    const words = content.split(/\s+/).filter(w => w.length > 0).length;
+    const words = content.split(/\s+/).filter((w: string) => w.length > 0).length;
     
     const response = await axios.post(this.apiEndpoint, {
       model: 'gpt-3.5-turbo',

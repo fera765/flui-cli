@@ -120,7 +120,7 @@ export class FluiAutonomous {
     console.log(chalk.cyan('\n📊 Processando conteúdo gerado...'));
     
     // Conta palavras
-    const words = content.split(/\s+/).filter(w => w.length > 0).length;
+    const words = content.split(/\s+/).filter((w: string) => w.length > 0).length;
     console.log(chalk.blue(`📝 Palavras geradas: ${words.toLocaleString()}`));
     
     // Salva arquivo
