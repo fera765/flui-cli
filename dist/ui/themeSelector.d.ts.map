@@ -1,0 +1,1 @@
+{"version":3,"file":"themeSelector.d.ts","sourceRoot":"","sources":["../../src/ui/themeSelector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAC9C,OAAO,EAAE,eAAe,EAAE,MAAM,6BAA6B,CAAC;AAG9D,qBAAa,aAAa;IAItB,OAAO,CAAC,YAAY;IACpB,OAAO,CAAC,eAAe;IAJzB,OAAO,CAAC,QAAQ,CAAsB;gBAG5B,YAAY,EAAE,YAAY,EAC1B,eAAe,EAAE,eAAe;IAKpC,WAAW,IAAI,OAAO,CAAC,OAAO,CAAC;CA2BtC"}
