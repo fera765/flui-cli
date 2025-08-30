@@ -1,1 +1,0 @@
-export default function ScrollToTop() { return <button>↑</button>; }

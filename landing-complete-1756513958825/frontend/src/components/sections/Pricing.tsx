@@ -1,1 +1,0 @@
-export default function Pricing() { return <div>Pricing Section</div>; }

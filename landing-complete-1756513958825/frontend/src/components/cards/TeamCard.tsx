@@ -1,1 +1,0 @@
-export default function TeamCard(props: any) { return <div {...props} />; }

@@ -1,1 +1,0 @@
-export default function TestimonialCard(props: any) { return <div {...props} />; }

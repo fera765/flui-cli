@@ -1,1 +1,0 @@
-export default function Logo(props: any) { return <div {...props}>HealthSure</div>; }

@@ -1,1 +1,0 @@
-export default function FeatureCard(props: any) { return <div {...props} />; }
